@@ -115,19 +115,30 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
       setUploadProgress(85);
 
       const contentType = response.headers.get('content-type') || '';
-      let json: any = {};
+      let json: any = null;
 
       if (contentType.includes('application/json')) {
         try {
           json = await response.json();
         } catch (jsonErr) {
-          const rawText = await response.text().catch(() => '');
-          throw new Error(`Server returned status ${response.status}, but JSON response was invalid. Body snippet: "${rawText.slice(0, 80)}..."`);
+          json = null;
         }
-      } else {
+      }
+
+      if (!json) {
+        // Handle non-JSON or invalid JSON response cleanly
         const textBody = await response.text().catch(() => '');
-        const snippet = textBody.length > 80 ? `${textBody.slice(0, 80)}...` : textBody;
-        throw new Error(`Server returned HTTP status ${response.status} (${response.statusText || 'non-JSON response'}). Body snippet: "${snippet}"`);
+        console.error('Non-JSON response from resume parser API:', response.status, contentType, textBody);
+
+        if (response.status === 404) {
+          throw new Error('Resume parsing service endpoint was not found (HTTP 404). Please try again or check API configuration.');
+        } else if (response.status === 413) {
+          throw new Error('File payload exceeds the server request limit (HTTP 413). Please upload a smaller resume document.');
+        } else if (response.status >= 500) {
+          throw new Error(`Resume parsing service is temporarily unavailable (HTTP ${response.status}). Please try again in a few moments.`);
+        } else {
+          throw new Error('Resume parsing service is currently unavailable. Please try again.');
+        }
       }
 
       if (!response.ok || (json.error && !json.extractedText)) {
