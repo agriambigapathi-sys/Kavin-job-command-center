@@ -114,10 +114,15 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
 
       setUploadProgress(85);
 
-      const json = await response.json();
+      let json: any = {};
+      try {
+        json = await response.json();
+      } catch (parseErr) {
+        throw new Error(`Server returned HTTP ${response.status} (${response.statusText || 'Invalid non-JSON response'}).`);
+      }
 
       if (!response.ok || (json.error && !json.extractedText)) {
-        throw new Error(json.error || 'Failed to upload and parse resume file.');
+        throw new Error(json.error || `Server error (HTTP ${response.status}): Failed to upload and parse resume file.`);
       }
 
       setUploadProgress(100);
@@ -138,7 +143,10 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
       console.error('Resume upload error:', err);
       setIsUploading(false);
       setUploadProgress(0);
-      setErrorMsg(err.message || 'Error occurred while parsing the resume file.');
+      const displayMsg = err.message === 'Failed to fetch'
+        ? 'Failed to connect to backend API endpoint (/api/resumes/upload-and-parse). Please verify API deployment.'
+        : (err.message || 'Error occurred while parsing the resume file.');
+      setErrorMsg(displayMsg);
       setCanRetry(true);
     }
   };

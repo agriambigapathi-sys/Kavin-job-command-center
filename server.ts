@@ -1409,7 +1409,7 @@ ${extractedText.slice(0, 32000)}
 });
 
 // Setup Vite middleware / static files
-async function startServer() {
+export async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -1429,4 +1429,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
