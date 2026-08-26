@@ -3,8 +3,8 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
-// @ts-ignore
-import pdfParse from "pdf-parse";
+const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
 
 dotenv.config();
 
@@ -1264,15 +1264,24 @@ app.post("/api/resumes/upload-and-parse", async (req: Request, res: Response) =>
         if (lowerName.endsWith(".pdf") || fileType === "pdf" || fileType === "application/pdf") {
           const pdfData = await pdfParse(buffer);
           extractedText = (pdfData.text || "").trim();
+        } else if (
+          lowerName.endsWith(".docx") ||
+          lowerName.endsWith(".doc") ||
+          fileType === "docx" ||
+          fileType.includes("word") ||
+          fileType.includes("officedocument")
+        ) {
+          const mammothResult = await mammoth.extractRawText({ buffer });
+          extractedText = (mammothResult.value || "").trim();
         } else {
-          // Plain text / markdown / docx printable decoding from buffer
+          // Plain text / markdown / tex decoding
           extractedText = buffer.toString("utf-8").trim();
         }
       } catch (extractErr: any) {
         console.error("File extraction error:", extractErr);
         return res.status(400).json({
           success: false,
-          error: "Failed to extract text from file. Please upload a valid, non-corrupted PDF, DOCX, or text file.",
+          error: `Failed to extract text from ${fileName}. The file may be corrupted, encrypted, or in an unsupported format.`,
         });
       }
     }
@@ -1298,27 +1307,28 @@ app.post("/api/resumes/upload-and-parse", async (req: Request, res: Response) =>
       });
     }
 
-    const parsePrompt = `You are an objective, zero-hallucination Technical Resume Parser.
-Your job is to extract candidate resume information into structured JSON.
+    const parsePrompt = `You are a zero-hallucination Technical Resume Parser.
+Your sole job is to extract authentic facts from the candidate's resume text into structured JSON.
 
-CRITICAL ANTI-HALLUCINATION RULES:
-1. Do NOT invent or fabricate any facts, companies, dates, skills, metrics, degrees, or contact details.
-2. If a field or detail is NOT present in the resume text, set it to null or empty array [].
-3. Preserve the user's authentic facts strictly.
+CRITICAL ZERO-HALLUCINATION & NO-DEFAULT DIRECTIVES:
+1. NEVER invent, fabricate, or assume any facts, job titles, companies, dates, locations, skills, metrics, degrees, or contact details.
+2. If a field or section is missing from the resume text (e.g. no GitHub link, no phone number, no awards, no certifications), set that property to null or [].
+3. NEVER insert default placeholder text such as "Senior Software Engineer", "Enterprise Solutions", "San Francisco, CA", "2022 - Present", or generic bullet points.
+4. Extract only facts explicitly present in the document.
 
 Return ONLY a valid JSON object matching this exact schema:
 {
   "personalInfo": {
-    "fullName": "<candidate name or null>",
-    "email": "<email or null>",
-    "phone": "<phone or null>",
-    "location": "<location or null>",
+    "fullName": "<candidate full name or null>",
+    "email": "<email address or null>",
+    "phone": "<phone number or null>",
+    "location": "<city/state/location or null>",
     "linkedin": "<linkedin URL or null>",
     "github": "<github URL or null>",
     "portfolio": "<portfolio URL or null>"
   },
   "professionalInfo": {
-    "summary": "<executive summary or null>",
+    "summary": "<professional summary statement or null>",
     "skills": {
       "technicalSkills": ["<technical skill 1>", "<technical skill 2>"],
       "softSkills": ["<soft skill 1>"]
@@ -1326,9 +1336,9 @@ Return ONLY a valid JSON object matching this exact schema:
     "workExperience": [
       {
         "company": "<company name or null>",
-        "jobTitle": "<position/role title or null>",
+        "jobTitle": "<role / job title or null>",
         "location": "<location or null>",
-        "employmentDates": "<employment dates e.g. 2022 - Present or null>",
+        "employmentDates": "<dates or null>",
         "responsibilities": ["<responsibility 1>", "<responsibility 2>"],
         "achievements": ["<achievement 1>"]
       }
@@ -1336,14 +1346,14 @@ Return ONLY a valid JSON object matching this exact schema:
     "projects": [
       {
         "title": "<project name or null>",
-        "description": "<description or null>",
+        "description": "<project summary or null>",
         "technologies": ["<tech 1>", "<tech 2>"],
-        "link": "<link or null>"
+        "link": "<project link or null>"
       }
     ],
     "education": [
       {
-        "institution": "<school/university or null>",
+        "institution": "<school / university name or null>",
         "degree": "<degree or null>",
         "field": "<field of study or null>",
         "dates": "<dates or null>"
@@ -1357,7 +1367,7 @@ Return ONLY a valid JSON object matching this exact schema:
 
 Resume Document Content:
 """
-${extractedText.slice(0, 15000)}
+${extractedText.slice(0, 32000)}
 """`;
 
     // 18-second timeout for AI parse

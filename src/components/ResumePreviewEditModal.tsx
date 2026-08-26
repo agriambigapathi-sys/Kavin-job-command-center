@@ -2,17 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   Save,
-  CheckCircle2,
   AlertCircle,
   Loader2,
-  User,
-  Briefcase,
-  Building2,
-  FileText,
-  Code,
-  GraduationCap,
-  Award,
-  Globe,
   Plus,
   Trash2,
   Sparkles,
@@ -46,7 +37,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
 }) => {
   const { user } = useAuth();
 
-  // Personal Info State
+  // Personal Info State (populated strictly from extracted/parsed data, no defaults)
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -80,7 +71,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
   const [awardsText, setAwardsText] = useState('');
   const [languagesText, setLanguagesText] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'contact' | 'summary' | 'experience' | 'projects' | 'education' | 'raw'>('contact');
+  const [activeTab, setActiveTab] = useState<'contact' | 'summary' | 'experience' | 'projects' | 'raw'>('contact');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -105,12 +96,12 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
       setTechSkills(tSkills.join(', '));
       setSoftSkills(sSkills.join(', '));
 
-      // Infer target role
+      // Primary job title if present
       const primaryJob = prof?.workExperience?.[0];
-      setTargetRole(primaryJob?.jobTitle || 'Senior Software Engineer');
+      setTargetRole(primaryJob?.jobTitle || p?.fullName ? `${p.fullName}'s Master Resume` : 'Master Resume');
       setTargetCompany(primaryJob?.company || '');
 
-      // Work experience
+      // Work experience (strictly extracted, no hardcoded defaults)
       if (prof?.workExperience && prof.workExperience.length > 0) {
         setWorkExperience(
           prof.workExperience.map((w) => ({
@@ -122,16 +113,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
           }))
         );
       } else {
-        setWorkExperience([
-          {
-            company: 'Enterprise Solutions',
-            jobTitle: 'Senior Software Engineer',
-            location: 'San Francisco, CA',
-            dates: '2022 - Present',
-            responsibilitiesText:
-              '- Architected high-throughput full-stack web applications.\n- Deployed cloud-native microservices with automated CI/CD pipelines.',
-          },
-        ]);
+        setWorkExperience([]);
       }
 
       // Projects
@@ -208,11 +190,6 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
       return;
     }
 
-    if (!targetRole.trim()) {
-      setErrorMsg('Target role title is required.');
-      return;
-    }
-
     if (!user) {
       setErrorMsg('User session expired. Please sign in again.');
       return;
@@ -242,7 +219,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
           .map((line) => line.replace(/^[-*•]\s*/, '').trim())
           .filter(Boolean);
         lines.forEach((l) => {
-          highlights.push(w.jobTitle ? `${w.jobTitle} (${w.company}): ${l}` : l);
+          highlights.push(w.jobTitle ? `${w.jobTitle}${w.company ? ` (${w.company})` : ''}: ${l}` : l);
         });
       });
 
@@ -305,19 +282,16 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
 
       const payload = {
         name: resumeName.trim(),
-        targetRole: targetRole.trim(),
+        targetRole: targetRole.trim() || 'Master Candidate Profile',
         targetCompany: targetCompany.trim(),
         baseResumeId: 'master-upload',
         baseResumeName: fileName || 'Uploaded Resume File',
         jobId: null,
         variantType: isMaster ? 'Master' : 'Uploaded Master',
         notes: `Parsed from ${fileName} on ${new Date().toLocaleDateString()}`,
-        summary: summary.trim() || `Master candidate profile for ${targetRole}`,
-        skills: allSkills.length > 0 ? allSkills : ['TypeScript', 'React', 'Node.js', 'SQL'],
-        experienceHighlights:
-          highlights.length > 0
-            ? highlights.slice(0, 8)
-            : ['Demonstrated systems development and full-stack technical accomplishments.'],
+        summary: summary.trim() || '',
+        skills: allSkills,
+        experienceHighlights: highlights,
         isMaster: isMaster,
         format: fileType as any,
         version: 'v1.0-master',
@@ -336,7 +310,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
       await logUserActivity(
         user.uid,
         'Resume Generated',
-        `Saved master uploaded resume "${payload.name}" for ${payload.targetRole}`
+        `Saved master uploaded resume "${payload.name}"`
       );
 
       const createdResumeVersion: ResumeVersion = {
@@ -443,7 +417,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            1. Contact & Target Role
+            1. Contact & Role
           </button>
           <button
             type="button"
@@ -506,16 +480,15 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                     type="text"
                     value={resumeName}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Master_FullStack_2026.pdf"
+                    placeholder="e.g. Master_Resume.pdf"
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   />
                 </div>
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
-                    Target Role Title *
+                    Target Role Title
                   </label>
                   <input
-                    required
                     type="text"
                     value={targetRole}
                     onChange={(e) => setTargetRole(e.target.value)}
@@ -534,7 +507,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Ambigapathi Kavin"
+                    placeholder="Full Name"
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   />
                 </div>
@@ -544,7 +517,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ambigapathikavin2@gmail.com"
+                    placeholder="email@example.com"
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   />
                 </div>
@@ -557,7 +530,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+1 (415) 890-3412"
+                    placeholder="Phone number"
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   />
                 </div>
@@ -567,7 +540,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    placeholder="San Francisco, CA"
+                    placeholder="City, State"
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   />
                 </div>
@@ -631,7 +604,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                   rows={4}
                   value={summary}
                   onChange={(e) => setSummary(e.target.value)}
-                  placeholder="3-4 sentence professional summary..."
+                  placeholder="Professional summary statement..."
                   className="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 />
               </div>
@@ -644,7 +617,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                   type="text"
                   value={techSkills}
                   onChange={(e) => setTechSkills(e.target.value)}
-                  placeholder="TypeScript, React, Node.js, Python, SQL, PostgreSQL, Docker"
+                  placeholder="e.g. TypeScript, React, Node.js, Python, SQL"
                   className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 />
               </div>
@@ -657,7 +630,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                   type="text"
                   value={softSkills}
                   onChange={(e) => setSoftSkills(e.target.value)}
-                  placeholder="Agile, Distributed Teams, Stakeholder Management"
+                  placeholder="e.g. Agile, Distributed Systems, Team Leadership"
                   className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 />
               </div>
@@ -669,7 +642,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                     type="text"
                     value={certificationsText}
                     onChange={(e) => setCertificationsText(e.target.value)}
-                    placeholder="AWS Certified, GCP Data Engineer"
+                    placeholder="Certifications (comma-separated)"
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   />
                 </div>
@@ -679,7 +652,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                     type="text"
                     value={awardsText}
                     onChange={(e) => setAwardsText(e.target.value)}
-                    placeholder="Engineering Excellence Award"
+                    placeholder="Awards (comma-separated)"
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   />
                 </div>
@@ -689,7 +662,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                     type="text"
                     value={languagesText}
                     onChange={(e) => setLanguagesText(e.target.value)}
-                    placeholder="English (Native)"
+                    placeholder="Languages (comma-separated)"
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   />
                 </div>
@@ -701,7 +674,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
           {activeTab === 'experience' && (
             <div className="space-y-4 animate-in fade-in">
               <div className="flex items-center justify-between">
-                <h4 className="font-bold text-slate-200">Parsed Employment History</h4>
+                <h4 className="font-bold text-slate-200">Parsed Employment History ({workExperience.length})</h4>
                 <button
                   type="button"
                   onClick={handleAddWorkExp}
@@ -711,6 +684,12 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                   <span>Add Role</span>
                 </button>
               </div>
+
+              {workExperience.length === 0 && (
+                <div className="p-6 text-center rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
+                  No work experience extracted from document. Click "Add Role" above to enter manually.
+                </div>
+              )}
 
               {workExperience.map((work, idx) => (
                 <div key={idx} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3 relative">
@@ -759,7 +738,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                         copy[idx].location = e.target.value;
                         setWorkExperience(copy);
                       }}
-                      placeholder="Location (e.g. San Francisco, CA)"
+                      placeholder="Location"
                       className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none"
                     />
                     <input
@@ -770,7 +749,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                         copy[idx].dates = e.target.value;
                         setWorkExperience(copy);
                       }}
-                      placeholder="Employment Dates (e.g. 2022 - Present)"
+                      placeholder="Employment Dates"
                       className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none"
                     />
                   </div>
@@ -787,7 +766,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                         copy[idx].responsibilitiesText = e.target.value;
                         setWorkExperience(copy);
                       }}
-                      placeholder="- High impact accomplishment..."
+                      placeholder="- Accomplishment..."
                       className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 font-mono text-xs focus:outline-none"
                     />
                   </div>
@@ -802,7 +781,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
               {/* Projects */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-200">Projects</h4>
+                  <h4 className="font-bold text-slate-200">Projects ({projects.length})</h4>
                   <button
                     type="button"
                     onClick={handleAddProject}
@@ -859,7 +838,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                         copy[idx].description = e.target.value;
                         setProjects(copy);
                       }}
-                      placeholder="Project description and key impact..."
+                      placeholder="Project description..."
                       className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-xs focus:outline-none"
                     />
                   </div>
@@ -869,7 +848,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
               {/* Education */}
               <div className="space-y-3 pt-3 border-t border-slate-800">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-200">Education</h4>
+                  <h4 className="font-bold text-slate-200">Education ({education.length})</h4>
                   <button
                     type="button"
                     onClick={handleAddEducation}
@@ -913,7 +892,7 @@ export const ResumePreviewEditModal: React.FC<ResumePreviewEditModalProps> = ({
                           copy[idx].degree = e.target.value;
                           setEducation(copy);
                         }}
-                        placeholder="Degree (e.g. Bachelor of Science)"
+                        placeholder="Degree / Qualification"
                         className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 focus:outline-none"
                       />
                     </div>

@@ -2,13 +2,9 @@ import React, { useState, useRef } from 'react';
 import {
   X,
   Upload,
-  FileText,
   AlertCircle,
   Loader2,
-  CheckCircle2,
   RefreshCw,
-  Info,
-  ArrowRight,
 } from 'lucide-react';
 import { ParsedResumeData } from '../types';
 
@@ -62,19 +58,19 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
     const allowedExtensions = ['pdf', 'docx', 'doc', 'txt', 'md', 'tex'];
     if (!allowedExtensions.includes(ext)) {
-      setErrorMsg('Unsupported file type. Please upload a PDF, DOCX, or TXT resume document.');
+      setErrorMsg('Unsupported file format. Please upload a PDF, DOCX, or TXT resume file.');
       return;
     }
 
     // 2. Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setErrorMsg('File size exceeds the 10MB limit. Please upload a smaller document.');
+      setErrorMsg('File size exceeds the 10MB limit. Please upload a smaller resume document.');
       return;
     }
 
-    // 3. Validate non-empty
+    // 3. Validate non-empty file
     if (file.size === 0) {
-      setErrorMsg('Selected file is empty (0 bytes). Please select a valid resume document.');
+      setErrorMsg('The selected file is empty (0 bytes). Please upload a valid resume document.');
       return;
     }
 
@@ -83,7 +79,7 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
     setCanRetry(false);
     setIsUploading(true);
     setUploadProgress(20);
-    setStatusMessage('Reading document contents...');
+    setStatusMessage('Reading resume document contents...');
 
     try {
       let fileBase64 = '';
@@ -92,7 +88,7 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
       if (['txt', 'md', 'tex', 'json'].includes(ext)) {
         textContent = await file.text();
       } else {
-        // Read file as base64 array buffer
+        // Read binary file as base64
         const arrayBuffer = await file.arrayBuffer();
         const bytes = new Uint8Array(arrayBuffer);
         let binary = '';
@@ -103,7 +99,7 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
       }
 
       setUploadProgress(50);
-      setStatusMessage('Extracting text and parsing with AI...');
+      setStatusMessage('Extracting text and parsing structured facts with AI...');
 
       const response = await fetch('/api/resumes/upload-and-parse', {
         method: 'POST',
@@ -189,7 +185,7 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
                 </span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Upload your resume to automatically extract structured experience, skills, and facts.
+                Upload your resume file to automatically extract structured experience, skills, and facts.
               </p>
             </div>
           </div>
@@ -292,7 +288,7 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
               </div>
 
               <p className="text-[11px] text-slate-500">
-                Processing document safely with zero hallucination enforcement...
+                Processing document with zero hallucination enforcement...
               </p>
             </div>
           )}
