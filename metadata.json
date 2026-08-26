@@ -1,0 +1,6 @@
+{
+  "name": "Kavin Job Command Center",
+  "description": "Private, personal job-search management system with pipeline tracking, JD analyzer, resume & cover letter manager, interview prep, contacts CRM, and analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

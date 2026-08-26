@@ -1,0 +1,212 @@
+{
+  "entities": {
+    "userProfiles": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "phone": { "type": "string" },
+        "location": { "type": "string" },
+        "linkedin": { "type": "string" },
+        "portfolio": { "type": "string" },
+        "targetRoles": { "type": "array" },
+        "targetLocations": { "type": "array" },
+        "experienceLevel": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "jobs": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "location": { "type": "string" },
+        "source": { "type": "string" },
+        "jobUrl": { "type": "string" },
+        "applicationUrl": { "type": "string" },
+        "jobId": { "type": "string" },
+        "postedDate": { "type": "string" },
+        "salary": { "type": "string" },
+        "experience": { "type": "string" },
+        "status": { "type": "string" },
+        "fitnessScore": { "type": "number" },
+        "priority": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "jobDescriptions": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "rawText": { "type": "string" },
+        "summary": { "type": "string" },
+        "skills": { "type": "array" },
+        "mustHaveSkills": { "type": "array" },
+        "preferredSkills": { "type": "array" },
+        "responsibilities": { "type": "array" },
+        "qualifications": { "type": "array" },
+        "experienceRequirements": { "type": "string" },
+        "educationRequirements": { "type": "string" },
+        "keywords": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "applications": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "appliedDate": { "type": "string" },
+        "status": { "type": "string" },
+        "applicationUrl": { "type": "string" },
+        "resumeId": { "type": "string" },
+        "coverLetterId": { "type": "string" },
+        "responseDate": { "type": "string" },
+        "interviewStage": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "contacts": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "name": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "contactType": { "type": "string" },
+        "linkedin": { "type": "string" },
+        "email": { "type": "string" },
+        "relationship": { "type": "string" },
+        "notes": { "type": "string" },
+        "lastContactDate": { "type": "string" },
+        "nextFollowUpDate": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "followUps": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "contactId": { "type": "string" },
+        "company": { "type": "string" },
+        "person": { "type": "string" },
+        "channel": { "type": "string" },
+        "followUpType": { "type": "string" },
+        "lastContactDate": { "type": "string" },
+        "nextFollowUpDate": { "type": "string" },
+        "followUpNumber": { "type": "number" },
+        "message": { "type": "string" },
+        "status": { "type": "string" },
+        "response": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "interviews": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "round": { "type": "string" },
+        "date": { "type": "string" },
+        "interviewer": { "type": "string" },
+        "questions": { "type": "array" },
+        "result": { "type": "string" },
+        "nextStep": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "resumes": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "version": { "type": "string" },
+        "latexSource": { "type": "string" },
+        "pdfFileId": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "pageCount": { "type": "number" },
+        "validationStatus": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "coverLetters": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "content": { "type": "string" },
+        "version": { "type": "string" },
+        "fileId": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "messages": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "contactId": { "type": "string" },
+        "channel": { "type": "string" },
+        "messageType": { "type": "string" },
+        "subject": { "type": "string" },
+        "body": { "type": "string" },
+        "status": { "type": "string" },
+        "sentAt": { "type": "string" },
+        "response": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "activity": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    "jobAnalyses": {
+      "fields": {
+        "ownerId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "resumeId": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "company": { "type": "string" },
+        "overallMatch": { "type": "number" },
+        "roleCompatibility": { "type": "number" },
+        "atsScore": { "type": "number" },
+        "matchSummary": { "type": "string" },
+        "scoreBreakdown": { "type": "object" },
+        "matchedKeywords": { "type": "array" },
+        "partialKeywords": { "type": "array" },
+        "missingKeywords": { "type": "array" },
+        "atsFeedback": { "type": "array" },
+        "evidence": { "type": "object" },
+        "bulletRecommendations": { "type": "array" },
+        "customInterviewQuestions": { "type": "array" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  }
+}

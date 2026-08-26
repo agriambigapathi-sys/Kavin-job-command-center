@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to verify user authentication
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if the document belongs to the signed-in user
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper function to verify incoming ownerId matches the user
+    function incomingOwnerMatches() {
+      return isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // Helper function to ensure ownerId is unchanged on updates
+    function existingOwnerMatches() {
+      return isAuthenticated() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // 1. userProfiles: document ID is ownerId
+    match /userProfiles/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.ownerId == userId;
+      allow update: if isOwner(userId) && request.resource.data.ownerId == userId;
+      allow delete: if isOwner(userId);
+    }
+
+    // 2. jobs
+    match /jobs/{jobId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 3. jobDescriptions
+    match /jobDescriptions/{jdId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 4. applications
+    match /applications/{applicationId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 5. contacts
+    match /contacts/{contactId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 6. followUps
+    match /followUps/{followUpId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 7. interviews
+    match /interviews/{interviewId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 8. resumes
+    match /resumes/{resumeId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 9. coverLetters
+    match /coverLetters/{coverLetterId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 10. messages
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 11. activity
+    match /activity/{activityId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+
+    // 12. jobAnalyses
+    match /jobAnalyses/{analysisId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if incomingOwnerMatches();
+      allow update: if existingOwnerMatches() && incomingOwnerMatches();
+      allow delete: if existingOwnerMatches();
+    }
+  }
+}
