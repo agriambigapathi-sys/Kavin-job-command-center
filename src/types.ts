@@ -180,6 +180,58 @@ export interface FirestoreJobAnalysis extends BaseFirestoreDoc {
 export type ResumeType = 'MASTER' | 'ROLE_VARIANT' | 'JOB_SPECIFIC';
 export type ResumeStatus = 'draft' | 'active' | 'archived';
 
+export interface ParsedResumePersonalInfo {
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  linkedin: string | null;
+  github: string | null;
+  portfolio: string | null;
+}
+
+export interface ParsedWorkExperience {
+  company: string | null;
+  jobTitle: string | null;
+  location: string | null;
+  employmentDates: string | null;
+  responsibilities: string[];
+  achievements: string[];
+}
+
+export interface ParsedProject {
+  title: string | null;
+  description: string | null;
+  technologies: string[];
+  link: string | null;
+}
+
+export interface ParsedEducation {
+  institution: string | null;
+  degree: string | null;
+  field: string | null;
+  dates: string | null;
+}
+
+export interface ParsedResumeProfessionalInfo {
+  summary: string | null;
+  skills: {
+    technicalSkills: string[];
+    softSkills: string[];
+  };
+  workExperience: ParsedWorkExperience[];
+  projects: ParsedProject[];
+  education: ParsedEducation[];
+  certifications: string[];
+  awards: string[];
+  languages: string[];
+}
+
+export interface ParsedResumeData {
+  personalInfo: ParsedResumePersonalInfo;
+  professionalInfo: ParsedResumeProfessionalInfo;
+}
+
 export interface ResumeVersion {
   id: string;
   name: string;
@@ -200,6 +252,13 @@ export interface ResumeVersion {
   pdfFile?: string;
   pdfUrl?: string;
   sourceText?: string;
+  extractedText?: string;
+  parsedData?: ParsedResumeData;
+  fileType?: string;
+  filename?: string;
+  uploadTimestamp?: string;
+  parsingStatus?: 'pending' | 'completed' | 'failed' | 'raw_only';
+  parsingError?: string;
   content?: string;
   summary: string;
   skills: string[];
@@ -208,7 +267,7 @@ export interface ResumeVersion {
   notes?: string;
   lastModified: string;
   isMaster: boolean;
-  format: 'PDF' | 'DOCX' | 'Markdown';
+  format: 'PDF' | 'DOCX' | 'Markdown' | string;
   downloadCount: number;
   ownerId?: string;
   createdAt?: string;
@@ -506,6 +565,13 @@ export interface FirestoreResume extends BaseFirestoreDoc {
   pdfFile?: string;
   pdfUrl?: string;
   sourceText?: string;
+  extractedText?: string;
+  parsedData?: ParsedResumeData;
+  fileType?: string;
+  filename?: string;
+  uploadTimestamp?: string;
+  parsingStatus?: 'pending' | 'completed' | 'failed' | 'raw_only';
+  parsingError?: string;
   verifiedEvidence?: any;
   pageCount?: number;
   validationStatus?: ResumeValidationStatus;

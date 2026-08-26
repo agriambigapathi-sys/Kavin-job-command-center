@@ -13,9 +13,12 @@ import {
   RefreshCw,
   Check,
   Building2,
+  Upload,
 } from 'lucide-react';
-import { ResumeVersion, UserProfile, Job } from '../types';
+import { ResumeVersion, UserProfile, Job, ParsedResumeData } from '../types';
 import { CreateResumeVariantModal } from './CreateResumeVariantModal';
+import { UploadResumeModal } from './UploadResumeModal';
+import { ResumePreviewEditModal } from './ResumePreviewEditModal';
 
 interface ResumesViewProps {
   resumes?: ResumeVersion[];
@@ -55,7 +58,19 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
 
   // Modal & Notification State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isPreviewEditModalOpen, setIsPreviewEditModalOpen] = useState(false);
   const [successNotification, setSuccessNotification] = useState<string | null>(null);
+
+  // Parsed Upload result
+  const [parsedUploadResult, setParsedUploadResult] = useState<{
+    fileName: string;
+    fileType: string;
+    extractedText: string;
+    parsedData: ParsedResumeData | null;
+    parsingStatus: 'completed' | 'failed' | 'raw_only';
+    parsingError?: string;
+  } | null>(null);
 
   const currentResume = resumes.find((r) => r.id === selectedResumeId) || resumes[0];
 
@@ -101,6 +116,30 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
     }, 5000);
   };
 
+  const handleParsedSuccess = (result: {
+    fileName: string;
+    fileType: string;
+    extractedText: string;
+    parsedData: ParsedResumeData | null;
+    parsingStatus: 'completed' | 'failed' | 'raw_only';
+    parsingError?: string;
+  }) => {
+    setParsedUploadResult(result);
+    setIsUploadModalOpen(false);
+    setIsPreviewEditModalOpen(true);
+  };
+
+  const handleResumeSaved = (savedResume: ResumeVersion) => {
+    setSelectedResumeId(savedResume.id);
+    setSuccessNotification(`Master resume "${savedResume.name}" uploaded & saved successfully.`);
+    if (onCreateResumeVariant) {
+      onCreateResumeVariant(savedResume);
+    }
+    setTimeout(() => {
+      setSuccessNotification(null);
+    }, 5000);
+  };
+
   return (
     <div id="resumes-view-container" className="space-y-6">
       {/* Top Success Banner */}
@@ -137,15 +176,27 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          id="open-new-resume-variant-modal-btn"
-          onClick={() => setIsCreateModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md shadow-cyan-900/30 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Resume Variant</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            id="open-upload-resume-modal-btn"
+            onClick={() => setIsUploadModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+          >
+            <Upload className="w-4 h-4 text-cyan-400" />
+            <span>Upload Resume</span>
+          </button>
+
+          <button
+            type="button"
+            id="open-new-resume-variant-modal-btn"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md shadow-cyan-900/30 transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Resume Variant</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -228,7 +279,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
             <button
               onClick={handleEnhanceBullet}
               disabled={isEnhancing || !rawBulletInput.trim()}
-              className="w-full py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+              className="w-full py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} />
               <span>{isEnhancing ? 'Optimizing with Gemini...' : 'Enhance with STAR Method'}</span>
@@ -280,7 +331,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => alert(`Downloaded ${currentResume.name} in PDF format`)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Export PDF</span>
@@ -292,13 +343,19 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
             <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-5 text-xs text-slate-300">
               {/* Name Header */}
               <div className="text-center pb-4 border-b border-slate-800 space-y-1">
-                <h2 className="text-xl font-black text-white tracking-wide">{userProfile.name}</h2>
+                <h2 className="text-xl font-black text-white tracking-wide">
+                  {currentResume.parsedData?.personalInfo?.fullName || userProfile.name}
+                </h2>
                 <div className="text-cyan-400 font-semibold">{currentResume.targetRole}</div>
                 <div className="text-[11px] text-slate-400">
-                  {userProfile.location} • {userProfile.email} • {userProfile.phone}
+                  {currentResume.parsedData?.personalInfo?.location || userProfile.location} •{' '}
+                  {currentResume.parsedData?.personalInfo?.email || userProfile.email} •{' '}
+                  {currentResume.parsedData?.personalInfo?.phone || userProfile.phone}
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono">
-                  {userProfile.github} • {userProfile.linkedin} • {userProfile.portfolio}
+                  {currentResume.parsedData?.personalInfo?.github || userProfile.github} •{' '}
+                  {currentResume.parsedData?.personalInfo?.linkedin || userProfile.linkedin} •{' '}
+                  {currentResume.parsedData?.personalInfo?.portfolio || userProfile.portfolio}
                 </div>
               </div>
 
@@ -367,6 +424,28 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
         jobs={jobs}
         onVariantCreated={handleVariantCreated}
       />
+
+      {/* Upload Resume Modal */}
+      <UploadResumeModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onParsedSuccess={handleParsedSuccess}
+      />
+
+      {/* Resume Preview & Edit Modal */}
+      {parsedUploadResult && (
+        <ResumePreviewEditModal
+          isOpen={isPreviewEditModalOpen}
+          onClose={() => setIsPreviewEditModalOpen(false)}
+          fileName={parsedUploadResult.fileName}
+          fileType={parsedUploadResult.fileType}
+          extractedText={parsedUploadResult.extractedText}
+          initialParsedData={parsedUploadResult.parsedData}
+          parsingStatus={parsedUploadResult.parsingStatus}
+          parsingError={parsedUploadResult.parsingError}
+          onResumeSaved={handleResumeSaved}
+        />
+      )}
     </div>
   );
 };
