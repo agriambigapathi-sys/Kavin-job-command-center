@@ -3,6 +3,8 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
+// @ts-ignore
+import pdfParse from "pdf-parse";
 
 dotenv.config();
 
@@ -1234,6 +1236,165 @@ CRITICAL RULES:
       return res.status(503).json({ error: "AI service is temporarily busy. Please try again." });
     }
     return res.status(500).json({ error: error.message || "Failed to generate outreach message" });
+  }
+});
+
+// API: Upload & Parse Resume
+app.post("/api/resumes/upload-and-parse", async (req: Request, res: Response) => {
+  try {
+    const { fileName, fileType, fileBase64, textContent } = req.body;
+
+    if (!fileName || typeof fileName !== "string") {
+      return res.status(400).json({
+        success: false,
+        error: "Filename is required.",
+      });
+    }
+
+    let extractedText = "";
+
+    // 1. Extract raw text from file
+    if (textContent && typeof textContent === "string" && textContent.trim().length > 0) {
+      extractedText = textContent.trim();
+    } else if (fileBase64 && typeof fileBase64 === "string") {
+      try {
+        const buffer = Buffer.from(fileBase64, "base64");
+        const lowerName = fileName.toLowerCase();
+
+        if (lowerName.endsWith(".pdf") || fileType === "pdf" || fileType === "application/pdf") {
+          const pdfData = await pdfParse(buffer);
+          extractedText = (pdfData.text || "").trim();
+        } else {
+          // Plain text / markdown / docx printable decoding from buffer
+          extractedText = buffer.toString("utf-8").trim();
+        }
+      } catch (extractErr: any) {
+        console.error("File extraction error:", extractErr);
+        return res.status(400).json({
+          success: false,
+          error: "Failed to extract text from file. Please upload a valid, non-corrupted PDF, DOCX, or text file.",
+        });
+      }
+    }
+
+    if (!extractedText || extractedText.length < 10) {
+      return res.status(400).json({
+        success: false,
+        error: "File contains no readable text or is empty. Please select a valid resume document.",
+        extractedText: "",
+      });
+    }
+
+    // 2. Structured AI Parsing using Gemini AI Client
+    const ai = getGeminiClient();
+
+    if (!ai) {
+      return res.json({
+        success: false,
+        parsingStatus: "raw_only",
+        extractedText,
+        error: "Gemini AI API service is not configured on the server. Raw extracted text is preserved.",
+        parsedData: null,
+      });
+    }
+
+    const parsePrompt = `You are an objective, zero-hallucination Technical Resume Parser.
+Your job is to extract candidate resume information into structured JSON.
+
+CRITICAL ANTI-HALLUCINATION RULES:
+1. Do NOT invent or fabricate any facts, companies, dates, skills, metrics, degrees, or contact details.
+2. If a field or detail is NOT present in the resume text, set it to null or empty array [].
+3. Preserve the user's authentic facts strictly.
+
+Return ONLY a valid JSON object matching this exact schema:
+{
+  "personalInfo": {
+    "fullName": "<candidate name or null>",
+    "email": "<email or null>",
+    "phone": "<phone or null>",
+    "location": "<location or null>",
+    "linkedin": "<linkedin URL or null>",
+    "github": "<github URL or null>",
+    "portfolio": "<portfolio URL or null>"
+  },
+  "professionalInfo": {
+    "summary": "<executive summary or null>",
+    "skills": {
+      "technicalSkills": ["<technical skill 1>", "<technical skill 2>"],
+      "softSkills": ["<soft skill 1>"]
+    },
+    "workExperience": [
+      {
+        "company": "<company name or null>",
+        "jobTitle": "<position/role title or null>",
+        "location": "<location or null>",
+        "employmentDates": "<employment dates e.g. 2022 - Present or null>",
+        "responsibilities": ["<responsibility 1>", "<responsibility 2>"],
+        "achievements": ["<achievement 1>"]
+      }
+    ],
+    "projects": [
+      {
+        "title": "<project name or null>",
+        "description": "<description or null>",
+        "technologies": ["<tech 1>", "<tech 2>"],
+        "link": "<link or null>"
+      }
+    ],
+    "education": [
+      {
+        "institution": "<school/university or null>",
+        "degree": "<degree or null>",
+        "field": "<field of study or null>",
+        "dates": "<dates or null>"
+      }
+    ],
+    "certifications": ["<certification 1>"],
+    "awards": ["<award 1>"],
+    "languages": ["<language 1>"]
+  }
+}
+
+Resume Document Content:
+"""
+${extractedText.slice(0, 15000)}
+"""`;
+
+    // 18-second timeout for AI parse
+    const geminiCall = ai.models.generateContent({
+      model: "gemini-3.7-flash",
+      contents: parsePrompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    const timeoutCall = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("AI resume parsing timed out after 18 seconds")), 18000)
+    );
+
+    const response = (await Promise.race([geminiCall, timeoutCall])) as any;
+    let parsedData: any = {};
+    try {
+      parsedData = JSON.parse(response.text || "{}");
+    } catch {
+      throw new Error("Failed to parse AI JSON response.");
+    }
+
+    return res.json({
+      success: true,
+      parsingStatus: "completed",
+      extractedText,
+      parsedData,
+    });
+  } catch (err: any) {
+    console.error("Resume upload & parse error:", err);
+    return res.status(500).json({
+      success: false,
+      parsingStatus: "failed",
+      error: err.message || "Failed to parse resume.",
+      extractedText: req.body?.textContent || "",
+    });
   }
 });
 
