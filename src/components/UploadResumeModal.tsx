@@ -114,11 +114,20 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
 
       setUploadProgress(85);
 
+      const contentType = response.headers.get('content-type') || '';
       let json: any = {};
-      try {
-        json = await response.json();
-      } catch (parseErr) {
-        throw new Error(`Server returned HTTP ${response.status} (${response.statusText || 'Invalid non-JSON response'}).`);
+
+      if (contentType.includes('application/json')) {
+        try {
+          json = await response.json();
+        } catch (jsonErr) {
+          const rawText = await response.text().catch(() => '');
+          throw new Error(`Server returned status ${response.status}, but JSON response was invalid. Body snippet: "${rawText.slice(0, 80)}..."`);
+        }
+      } else {
+        const textBody = await response.text().catch(() => '');
+        const snippet = textBody.length > 80 ? `${textBody.slice(0, 80)}...` : textBody;
+        throw new Error(`Server returned HTTP status ${response.status} (${response.statusText || 'non-JSON response'}). Body snippet: "${snippet}"`);
       }
 
       if (!response.ok || (json.error && !json.extractedText)) {
