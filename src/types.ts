@@ -1,13 +1,17 @@
 export type NavSection =
   | 'dashboard'
   | 'jobs'
+  | 'discovery'
   | 'jd-analyser'
   | 'resumes'
+  | 'ats-checker'
+  | 'interviews'
+  | 'salary-negotiator'
   | 'cover-letters'
+  | 'app-assistant'
   | 'applications'
   | 'contacts'
   | 'follow-ups'
-  | 'interviews'
   | 'analytics'
   | 'settings';
 

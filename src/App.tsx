@@ -12,8 +12,15 @@ import { FollowUpsView } from './components/FollowUpsView';
 import { InterviewsView } from './components/InterviewsView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { SettingsView } from './components/SettingsView';
+import { JobDiscoveryView } from './components/JobDiscoveryView';
+import { AtsCheckerView } from './components/AtsCheckerView';
+import { SalaryNegotiatorView } from './components/SalaryNegotiatorView';
+import { ApplicationAssistantView } from './components/ApplicationAssistantView';
 import { AddJobModal } from './components/AddJobModal';
 import { QuickOutreachModal } from './components/QuickOutreachModal';
+import { LinkedInHubModal, LinkedInToolType } from './components/LinkedInHubModal';
+import { NovaCopilotDrawer } from './components/NovaCopilotDrawer';
+import { ThemeSelectorModal } from './components/ThemeSelectorModal';
 import { LoginScreen } from './components/LoginScreen';
 import { useAuth } from './context/AuthContext';
 import {
@@ -75,11 +82,42 @@ export default function App() {
   const [resumeTargetJob, setResumeTargetJob] = useState<Job | null>(null);
   const [clInitialData, setClInitialData] = useState<{ company?: string; role?: string; jd?: string }>({});
 
-  // Modals state
+  // Modals and Drawers state
   const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
   const [isOutreachModalOpen, setIsOutreachModalOpen] = useState(false);
   const [outreachContact, setOutreachContact] = useState<Contact | null>(null);
   const [outreachFollowUp, setOutreachFollowUp] = useState<FollowUp | null>(null);
+
+  // Collapsible sidebar state (persisted to localStorage)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('nxtjob_sidebar_collapsed') === 'true';
+  });
+
+  const handleToggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('nxtjob_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  // LinkedIn unified tools hub modal state
+  const [isLinkedInHubOpen, setIsLinkedInHubOpen] = useState(false);
+  const [selectedLinkedInTool, setSelectedLinkedInTool] = useState<LinkedInToolType>('import_url');
+  const [linkedInHubJobContext, setLinkedInHubJobContext] = useState<Job | null>(null);
+
+  const handleOpenLinkedInTool = (tool: LinkedInToolType = 'import_url', job?: Job) => {
+    setSelectedLinkedInTool(tool);
+    if (job) setLinkedInHubJobContext(job);
+    setIsLinkedInHubOpen(true);
+  };
+
+  // Nova AI Career Copilot drawer state
+  const [isNovaCopilotOpen, setIsNovaCopilotOpen] = useState(false);
+  const [novaTargetJob, setNovaTargetJob] = useState<Job | null>(null);
+
+  // Global Theme Customizer Modal state
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   // Subscribe to real Firestore data when authenticated
   useEffect(() => {
@@ -381,21 +419,30 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-950 text-slate-100 overflow-hidden font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* Left Sidebar */}
+    <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden font-sans antialiased selection:bg-blue-500/20 selection:text-blue-700">
+      {/* Left Sidebar (Collapsible Rail or Expanded) */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         badges={badges}
         isMobileOpen={isMobileSidebarOpen}
         setIsMobileOpen={setIsMobileSidebarOpen}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+        onOpenThemeModal={() => setIsThemeModalOpen(true)}
+        onOpenLinkedInTool={handleOpenLinkedInTool}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-950">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-slate-950">
         {/* Top Header */}
         <Header
           activeTab={activeTab}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebarCollapse={handleToggleSidebarCollapse}
+          onOpenLinkedInTool={handleOpenLinkedInTool}
+          onOpenNovaCopilot={() => setIsNovaCopilotOpen(true)}
+          onOpenThemeModal={() => setIsThemeModalOpen(true)}
           onOpenAddJobModal={() => setIsAddJobModalOpen(true)}
           onOpenOutreachModal={() => {
             setOutreachContact(null);
@@ -488,6 +535,7 @@ export default function App() {
               contacts={contacts}
               onAddContact={handleAddContact}
               onOpenOutreachForContact={handleOpenOutreachForContact}
+              onOpenLinkedInTool={handleOpenLinkedInTool}
             />
           )}
 
@@ -504,6 +552,77 @@ export default function App() {
             <InterviewsView interviews={interviews} />
           )}
 
+          {activeTab === 'discovery' && (
+            <JobDiscoveryView
+              onSaveJobToPipeline={async (jobData) => {
+                if (user) {
+                  try {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const newJob: Job = {
+                      id: `job-${Date.now()}`,
+                      title: jobData.title,
+                      company: jobData.company,
+                      location: jobData.location,
+                      workType: 'Remote',
+                      salary: jobData.salaryRange,
+                      matchScore: jobData.matchScore || 85,
+                      matchKeyHighlights: jobData.keyHighlights || ['Remote', 'High Match'],
+                      source: 'AI Discovery Hunter',
+                      status: 'saved',
+                      postedDate: 'Today',
+                      savedDate: todayStr,
+                      tags: jobData.matchedSkills || [],
+                      description: jobData.summary || '',
+                      tier: (jobData.matchScore || 85) >= 90 ? 'Dream' : 'Target',
+                    };
+                    await createDocument('jobs', user.uid, newJob);
+                    setJobs((prev) => [newJob, ...prev]);
+                    await logActivity(user.uid, 'job_discovered', `Saved ${newJob.title} at ${newJob.company} from AI Hunter`, 'job', newJob.id);
+                  } catch (e) {
+                    console.error('Failed saving discovered job:', e);
+                  }
+                }
+                setActiveTab('jobs');
+              }}
+              onNavigateToTailor={(job) => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                setAnalyserTargetJob({
+                  id: `job-temp-${Date.now()}`,
+                  title: job.title,
+                  company: job.company,
+                  location: job.location,
+                  workType: 'Remote',
+                  salary: job.salaryRange,
+                  description: job.summary || '',
+                  matchScore: job.matchScore || 85,
+                  matchKeyHighlights: job.keyHighlights || [],
+                  tags: job.matchedSkills || [],
+                  source: 'Hunter AI',
+                  status: 'saved',
+                  postedDate: 'Today',
+                  savedDate: todayStr,
+                  tier: 'Target',
+                });
+                setActiveTab('jd-analyser');
+              }}
+            />
+          )}
+
+          {activeTab === 'ats-checker' && (
+            <AtsCheckerView
+              masterResumeText={userProfile?.summary || ''}
+              onNavigateToTailor={() => setActiveTab('jd-analyser')}
+            />
+          )}
+
+          {activeTab === 'salary-negotiator' && (
+            <SalaryNegotiatorView />
+          )}
+
+          {activeTab === 'app-assistant' && (
+            <ApplicationAssistantView />
+          )}
+
           {activeTab === 'analytics' && (
             <AnalyticsView stats={mockStats} applications={applications} />
           )}
@@ -517,7 +636,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* Global Modals */}
+      {/* Global Modals & Drawers */}
       <AddJobModal
         isOpen={isAddJobModalOpen}
         onClose={() => setIsAddJobModalOpen(false)}
@@ -533,6 +652,46 @@ export default function App() {
         onClose={() => setIsOutreachModalOpen(false)}
         targetContact={outreachContact}
         targetFollowUp={outreachFollowUp}
+      />
+
+      {/* Unified LinkedIn Power Suite Modal */}
+      <LinkedInHubModal
+        isOpen={isLinkedInHubOpen}
+        onClose={() => {
+          setIsLinkedInHubOpen(false);
+          setLinkedInHubJobContext(null);
+        }}
+        initialTool={selectedLinkedInTool}
+        targetJob={linkedInHubJobContext}
+        onJobImported={(newJob) => {
+          setJobs((prev) => [newJob, ...prev]);
+          setActiveTab('jobs');
+        }}
+        onContactCreated={(newContact) => {
+          setContacts((prev) => [newContact, ...prev]);
+          setActiveTab('contacts');
+        }}
+      />
+
+      {/* Nova AI Career Copilot Drawer */}
+      <NovaCopilotDrawer
+        isOpen={isNovaCopilotOpen}
+        onClose={() => {
+          setIsNovaCopilotOpen(false);
+          setNovaTargetJob(null);
+        }}
+        targetJob={novaTargetJob}
+        resumes={resumes}
+        onNavigateToTab={(tab) => {
+          setActiveTab(tab as any);
+          setIsNovaCopilotOpen(false);
+        }}
+      />
+
+      {/* Global Theme Customizer Modal */}
+      <ThemeSelectorModal
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
       />
     </div>
   );
