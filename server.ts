@@ -3,6 +3,9 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 

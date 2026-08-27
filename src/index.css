@@ -17,14 +17,61 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.8);
+  background: rgba(15, 23, 42, 0.8);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(203, 213, 225, 0.9);
+  background: rgba(51, 65, 85, 0.9);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.9);
+  background: rgba(71, 85, 105, 0.9);
+}
+
+/* Pristine Print Styles for PDF Export */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.38in 0.5in;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide all dashboard chrome, navigation, tabs, modals, buttons */
+  header,
+  nav,
+  aside,
+  button,
+  #resume-variant-success-toast,
+  #workspace-success-banner,
+  #workspace-error-banner,
+  .xl\:col-span-3,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Make the resume document the full print page */
+  #printable-resume-document {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    color: #000000 !important;
+  }
+
+  #printable-resume-document * {
+    color: #000000 !important;
+  }
 }
