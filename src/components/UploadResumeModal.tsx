@@ -120,20 +120,19 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
       if (contentType.includes('application/json')) {
         try {
           json = await response.json();
-        } catch (jsonErr) {
+        } catch {
           json = null;
         }
       }
 
       if (!json) {
-        // Handle non-JSON or invalid JSON response cleanly
         const textBody = await response.text().catch(() => '');
         console.error('Non-JSON response from resume parser API:', response.status, contentType, textBody);
 
         if (response.status === 404) {
-          throw new Error('Resume parsing service endpoint was not found (HTTP 404). Please try again or check API configuration.');
+          throw new Error('Resume parsing service endpoint was not found (HTTP 404). Please try again.');
         } else if (response.status === 413) {
-          throw new Error('File payload exceeds the server request limit (HTTP 413). Please upload a smaller resume document.');
+          throw new Error('File payload exceeds the server request limit (HTTP 413). Please upload a smaller file.');
         } else if (response.status >= 500) {
           throw new Error(`Resume parsing service is temporarily unavailable (HTTP ${response.status}). Please try again in a few moments.`);
         } else {
@@ -163,10 +162,7 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
       console.error('Resume upload error:', err);
       setIsUploading(false);
       setUploadProgress(0);
-      const displayMsg = err.message === 'Failed to fetch'
-        ? 'Failed to connect to backend API endpoint (/api/resumes/upload-and-parse). Please verify API deployment.'
-        : (err.message || 'Error occurred while parsing the resume file.');
-      setErrorMsg(displayMsg);
+      setErrorMsg(err.message || 'Error occurred while parsing the resume file.');
       setCanRetry(true);
     }
   };

@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import path from "path";
+import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 const pdfParse = require("pdf-parse");
@@ -29,7 +30,7 @@ function getGeminiClient(): GoogleGenAI | null {
 }
 
 // API: Extract Job Description from Public URL
-app.post(["/api/jobs/extract-url", "/jobs/extract-url"], async (req: Request, res: Response) => {
+app.post("/api/jobs/extract-url", async (req: Request, res: Response) => {
   try {
     const { url } = req.body;
     if (!url || typeof url !== "string") {
@@ -222,7 +223,7 @@ ${snippet}
 """`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-2.0-flash",
       contents: extractionPrompt,
       config: {
         responseMimeType: "application/json",
@@ -257,7 +258,7 @@ ${snippet}
 });
 
 // API: Parse / Structure Manually Pasted JD
-app.post(["/api/jobs/parse-manual-jd", "/jobs/parse-manual-jd"], async (req: Request, res: Response) => {
+app.post("/api/jobs/parse-manual-jd", async (req: Request, res: Response) => {
   try {
     const { company, role, location, jobUrl, applicationUrl, rawJd } = req.body;
 
@@ -323,7 +324,7 @@ ${rawJd.slice(0, 15000)}
 
     // Wrap Gemini call in a 15-second timeout
     const geminiPromise = ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -378,7 +379,7 @@ ${rawJd.slice(0, 15000)}
 });
 
 // Health check endpoint
-app.get(["/api/health", "/health"], (_req: Request, res: Response) => {
+app.get("/api/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
     app: "Kavin Job Command Center",
@@ -388,7 +389,7 @@ app.get(["/api/health", "/health"], (_req: Request, res: Response) => {
 });
 
 // API: AI Job Description Analysis (Strict Anti-Hallucination & Evidence Grounded)
-app.post(["/api/gemini/analyze-jd", "/gemini/analyze-jd"], async (req: Request, res: Response) => {
+app.post("/api/gemini/analyze-jd", async (req: Request, res: Response) => {
   try {
     const { jobId, company, role, jobTitle, jdText, jobDescription, resumeId, resumeVersion, resumeText } = req.body;
     const effectiveJobDescription = (jdText || jobDescription || "").toString().trim();
@@ -728,7 +729,7 @@ Return ONLY a valid JSON object matching this schema:
 }`;
 
     const geminiCall = ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -778,7 +779,7 @@ Return ONLY a valid JSON object matching this schema:
 });
 
 // API: AI Cover Letter Generator
-app.post(["/api/gemini/generate-cover-letter", "/gemini/generate-cover-letter"], async (req: Request, res: Response) => {
+app.post("/api/gemini/generate-cover-letter", async (req: Request, res: Response) => {
   try {
     const { jobTitle, company, hiringManager, jobDescription, tone, candidateHighlights } = req.body;
 
@@ -819,7 +820,7 @@ Requirements:
 - Return ONLY the cover letter text.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
 
@@ -831,7 +832,7 @@ Requirements:
 });
 
 // API: AI Bullet Point Optimizer
-app.post(["/api/gemini/enhance-bullet", "/gemini/enhance-bullet"], async (req: Request, res: Response) => {
+app.post("/api/gemini/enhance-bullet", async (req: Request, res: Response) => {
   try {
     const { rawBullet, targetRole } = req.body;
     if (!rawBullet) {
@@ -855,7 +856,7 @@ Return ONLY a JSON array of strings:
 ["enhanced bullet 1 with strong action verb and metrics", "enhanced bullet 2 with architectural focus"]`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -875,7 +876,7 @@ Return ONLY a JSON array of strings:
 });
 
 // API: AI Resume Tailoring (Strict Anti-Hallucination + Exactly 1-Page LaTeX Source)
-app.post(["/api/gemini/tailor-resume", "/gemini/tailor-resume"], async (req: Request, res: Response) => {
+app.post("/api/gemini/tailor-resume", async (req: Request, res: Response) => {
   try {
     const {
       jobId,
@@ -1109,7 +1110,7 @@ Return ONLY a JSON object matching this schema:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-2.0-flash",
       contents: tailoringPrompt,
       config: {
         responseMimeType: "application/json",
@@ -1159,7 +1160,7 @@ Return ONLY a JSON object matching this schema:
 });
 
 // API: AI LinkedIn & Recruiter Outreach Generator
-app.post(["/api/gemini/generate-outreach", "/gemini/generate-outreach"], async (req: Request, res: Response) => {
+app.post("/api/gemini/generate-outreach", async (req: Request, res: Response) => {
   try {
     const {
       templateType = "connection",
@@ -1217,7 +1218,7 @@ CRITICAL RULES:
 4. Return ONLY the message text.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
 
@@ -1239,7 +1240,7 @@ CRITICAL RULES:
 });
 
 // API: Upload & Parse Resume
-app.post(["/api/resumes/upload-and-parse", "/resumes/upload-and-parse"], async (req: Request, res: Response) => {
+app.post("/api/resumes/upload-and-parse", async (req: Request, res: Response) => {
   try {
     const { fileName, fileType, fileBase64, textContent } = req.body;
 
@@ -1371,7 +1372,7 @@ ${extractedText.slice(0, 32000)}
 
     // 18-second timeout for AI parse
     const geminiCall = ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-2.0-flash",
       contents: parsePrompt,
       config: {
         responseMimeType: "application/json",
@@ -1429,7 +1430,7 @@ export async function startServer() {
   });
 }
 
-if (!process.env.VERCEL) {
+if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
   startServer();
 }
 
