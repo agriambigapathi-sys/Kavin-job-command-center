@@ -176,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
               id="global-search-input"
               type="text"
               placeholder="Search in records..."
-              value={searchQuery}
+              value={searchQuery || ''}
               onChange={(e) => onSearchChange(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
             />

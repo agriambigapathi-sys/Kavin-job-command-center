@@ -169,7 +169,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <input
                 required
                 type="text"
-                value={role}
+                value={role || ''}
                 onChange={(e) => setRole(e.target.value)}
                 placeholder="e.g. Senior Full-Stack Engineer"
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -180,7 +180,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <input
                 required
                 type="text"
-                value={company}
+                value={company || ''}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="e.g. Stripe, Anthropic"
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -193,7 +193,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <label className="block text-slate-300 font-semibold mb-1">Location</label>
               <input
                 type="text"
-                value={location}
+                value={location || ''}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g. San Francisco, CA / Remote"
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -202,7 +202,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Work Type</label>
               <select
-                value={workType}
+                value={workType || 'Remote'}
                 onChange={(e) => setWorkType(e.target.value as WorkType)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500"
               >
@@ -214,7 +214,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Priority</label>
               <select
-                value={priority}
+                value={priority || 'Target'}
                 onChange={(e) => setPriority(e.target.value as JobPriority)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500"
               >
@@ -230,7 +230,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <label className="block text-slate-300 font-semibold mb-1">Salary / Compensation</label>
               <input
                 type="text"
-                value={salary}
+                value={salary || ''}
                 onChange={(e) => setSalary(e.target.value)}
                 placeholder="e.g. $180,000 - $220,000"
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -240,7 +240,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <label className="block text-slate-300 font-semibold mb-1">Experience Required</label>
               <input
                 type="text"
-                value={experience}
+                value={experience || ''}
                 onChange={(e) => setExperience(e.target.value)}
                 placeholder="e.g. 5+ Years"
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -249,7 +249,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Current Status</label>
               <select
-                value={status}
+                value={status || 'Saved'}
                 onChange={(e) => setStatus(e.target.value as FirestoreJobStatus)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-cyan-300 font-semibold focus:outline-none focus:ring-1 focus:ring-cyan-500"
               >
@@ -267,7 +267,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <label className="block text-slate-300 font-semibold mb-1">Source Platform</label>
               <input
                 type="text"
-                value={source}
+                value={source || ''}
                 onChange={(e) => setSource(e.target.value)}
                 placeholder="LinkedIn, Indeed, Company Site"
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -277,7 +277,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <label className="block text-slate-300 font-semibold mb-1">Requisition / Job ID</label>
               <input
                 type="text"
-                value={jobId}
+                value={jobId || ''}
                 onChange={(e) => setJobId(e.target.value)}
                 placeholder="e.g. REQ-9842"
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-mono"
@@ -287,7 +287,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <label className="block text-slate-300 font-semibold mb-1">Date Posted</label>
               <input
                 type="text"
-                value={postedDate}
+                value={postedDate || ''}
                 onChange={(e) => setPostedDate(e.target.value)}
                 placeholder="e.g. 2 days ago or YYYY-MM-DD"
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -300,7 +300,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <label className="block text-slate-300 font-semibold mb-1">Job URL</label>
               <input
                 type="url"
-                value={jobUrl}
+                value={jobUrl || ''}
                 onChange={(e) => setJobUrl(e.target.value)}
                 placeholder="https://linkedin.com/jobs/..."
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -310,7 +310,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
               <label className="block text-slate-300 font-semibold mb-1">Direct Application URL</label>
               <input
                 type="url"
-                value={applicationUrl}
+                value={applicationUrl || ''}
                 onChange={(e) => setApplicationUrl(e.target.value)}
                 placeholder="https://boards.greenhouse.io/..."
                 className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -322,7 +322,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
             <label className="block text-slate-300 font-semibold mb-1">Technology Tags (comma-separated)</label>
             <input
               type="text"
-              value={tags}
+              value={tags || ''}
               onChange={(e) => setTags(e.target.value)}
               placeholder="TypeScript, React, Node.js, Cloud Run"
               className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -333,7 +333,7 @@ export const EditJobModal: React.FC<EditJobModalProps> = ({
             <label className="block text-slate-300 font-semibold mb-1">Personal Notes / Scratchpad</label>
             <textarea
               rows={3}
-              value={notes}
+              value={notes || ''}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Notes on hiring manager, referral status, team sizing..."
               className="w-full p-3 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"

@@ -204,7 +204,7 @@ Tone: Enthusiastic, highly professional, direct. Confirm meeting times or expres
 
                 <textarea
                   rows={4}
-                  value={replyText}
+                  value={replyText || ''}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Click 'Auto-Draft Response' to generate a tailored reply or type here..."
                   className="w-full p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-500 focus:ring-1 focus:ring-purple-500"

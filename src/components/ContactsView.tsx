@@ -103,14 +103,14 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
           <input
             type="text"
             placeholder="Search by name, company, or role..."
-            value={search}
+            value={search || ''}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 placeholder:text-slate-500 focus:ring-1 focus:ring-cyan-500"
           />
         </div>
 
         <select
-          value={relationshipFilter}
+          value={relationshipFilter || 'all'}
           onChange={(e) => setRelationshipFilter(e.target.value)}
           className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-300 focus:ring-1 focus:ring-cyan-500"
         >
@@ -222,7 +222,7 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
                 <input
                   required
                   type="text"
-                  value={name}
+                  value={name || ''}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. David Chen"
                   className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200"
@@ -235,7 +235,7 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
                   <input
                     required
                     type="text"
-                    value={company}
+                    value={company || ''}
                     onChange={(e) => setCompany(e.target.value)}
                     placeholder="e.g. Stripe"
                     className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200"
@@ -245,7 +245,7 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
                   <label className="block text-slate-300 mb-1">Role / Title</label>
                   <input
                     type="text"
-                    value={role}
+                    value={role || ''}
                     onChange={(e) => setRole(e.target.value)}
                     placeholder="e.g. Staff Eng Manager"
                     className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200"
@@ -257,7 +257,7 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
                 <label className="block text-slate-300 mb-1">Email Address</label>
                 <input
                   type="email"
-                  value={email}
+                  value={email || ''}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="dchen@stripe.com"
                   className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200"
@@ -267,7 +267,7 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
               <div>
                 <label className="block text-slate-300 mb-1">Relationship</label>
                 <select
-                  value={relationship}
+                  value={relationship || 'Recruiter'}
                   onChange={(e) => setRelationship(e.target.value as any)}
                   className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200"
                 >
@@ -283,7 +283,7 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
                 <label className="block text-slate-300 mb-1">Notes / Context</label>
                 <textarea
                   rows={3}
-                  value={notes}
+                  value={notes || ''}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Key background, discussion topics, referral details..."
                   className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200"

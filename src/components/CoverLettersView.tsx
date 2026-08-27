@@ -127,7 +127,7 @@ export const CoverLettersView: React.FC<CoverLettersViewProps> = ({
             <label className="block text-xs font-medium text-slate-300 mb-1">Company Name</label>
             <input
               type="text"
-              value={company}
+              value={company || ''}
               onChange={(e) => setCompany(e.target.value)}
               className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 focus:ring-1 focus:ring-cyan-500"
             />
@@ -137,7 +137,7 @@ export const CoverLettersView: React.FC<CoverLettersViewProps> = ({
             <label className="block text-xs font-medium text-slate-300 mb-1">Target Position</label>
             <input
               type="text"
-              value={jobTitle}
+              value={jobTitle || ''}
               onChange={(e) => setJobTitle(e.target.value)}
               className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 focus:ring-1 focus:ring-cyan-500"
             />
@@ -147,7 +147,7 @@ export const CoverLettersView: React.FC<CoverLettersViewProps> = ({
             <label className="block text-xs font-medium text-slate-300 mb-1">Hiring Manager / Team</label>
             <input
               type="text"
-              value={hiringManager}
+              value={hiringManager || ''}
               onChange={(e) => setHiringManager(e.target.value)}
               placeholder="e.g. David Chen or Platform Hiring Team"
               className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 focus:ring-1 focus:ring-cyan-500"
@@ -157,7 +157,7 @@ export const CoverLettersView: React.FC<CoverLettersViewProps> = ({
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">Voice & Tone</label>
             <select
-              value={tone}
+              value={tone || 'Technical & Architectural'}
               onChange={(e) => setTone(e.target.value as any)}
               className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 focus:ring-1 focus:ring-cyan-500"
             >
@@ -174,7 +174,7 @@ export const CoverLettersView: React.FC<CoverLettersViewProps> = ({
             </label>
             <textarea
               rows={4}
-              value={jobDescription}
+              value={jobDescription || ''}
               onChange={(e) => setJobDescription(e.target.value)}
               placeholder="Paste snippet of JD requirements or specific team challenges..."
               className="w-full p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 placeholder:text-slate-500 focus:ring-1 focus:ring-cyan-500"
@@ -234,7 +234,7 @@ export const CoverLettersView: React.FC<CoverLettersViewProps> = ({
 
             <textarea
               rows={16}
-              value={content}
+              value={content || ''}
               onChange={(e) => setContent(e.target.value)}
               className="w-full mt-4 p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-sans leading-relaxed"
             />

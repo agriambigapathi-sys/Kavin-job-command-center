@@ -14,18 +14,28 @@ import {
   Check,
   Building2,
   Upload,
+  Eye,
+  Trash2,
+  ShieldCheck,
+  Target,
 } from 'lucide-react';
-import { ResumeVersion, UserProfile, Job, ParsedResumeData } from '../types';
+import { ResumeVersion, UserProfile, Job } from '../types';
 import { CreateResumeVariantModal } from './CreateResumeVariantModal';
 import { UploadResumeModal } from './UploadResumeModal';
 import { ResumePreviewEditModal } from './ResumePreviewEditModal';
+import { ResumeWorkspace } from './ResumeWorkspace';
+import { deleteResume, updateResume } from '../services/firestoreService';
+import { useAuth } from '../context/AuthContext';
 
 interface ResumesViewProps {
   resumes?: ResumeVersion[];
   jobs?: Job[];
   userProfile?: UserProfile;
+  initialJob?: Job | null;
   onSetMasterResume?: (id: string) => void;
   onCreateResumeVariant?: (newResume: ResumeVersion) => void;
+  onUpdateResume?: (updated: ResumeVersion) => void;
+  onDeleteResume?: (id: string) => void;
 }
 
 export const ResumesView: React.FC<ResumesViewProps> = ({
@@ -47,32 +57,41 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
     coreSkills: ['React', 'TypeScript', 'Node.js', 'LLMs'],
     dailyGoalApps: 5,
   },
+  initialJob = null,
   onSetMasterResume = (_id: string) => {},
   onCreateResumeVariant,
+  onUpdateResume,
+  onDeleteResume,
 }) => {
+  const { user } = useAuth();
+
+  // Top View Navigation: 'workspace' | 'library'
+  const [activeTab, setActiveTab] = useState<'workspace' | 'library'>('workspace');
+
+  // Selected state for library
   const [selectedResumeId, setSelectedResumeId] = useState(resumes[0]?.id || 'res-1');
+
+  // If deep-linked with initialJob, ensure workspace tab is active
+  React.useEffect(() => {
+    if (initialJob) {
+      setActiveTab('workspace');
+    }
+  }, [initialJob]);
+
+  // STAR Bullet Enhancer tool state
   const [rawBulletInput, setRawBulletInput] = useState('');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhancedBullets, setEnhancedBullets] = useState<string[]>([]);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-  // Modal & Notification State
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // Modals state
+  const [isCreateVariantModalOpen, setIsCreateVariantModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isPreviewEditModalOpen, setIsPreviewEditModalOpen] = useState(false);
+  const [previewModalResume, setPreviewModalResume] = useState<ResumeVersion | null>(null);
   const [successNotification, setSuccessNotification] = useState<string | null>(null);
 
-  // Parsed Upload result
-  const [parsedUploadResult, setParsedUploadResult] = useState<{
-    fileName: string;
-    fileType: string;
-    extractedText: string;
-    parsedData: ParsedResumeData | null;
-    parsingStatus: 'completed' | 'failed' | 'raw_only';
-    parsingError?: string;
-  } | null>(null);
-
   const currentResume = resumes.find((r) => r.id === selectedResumeId) || resumes[0];
+  const masterResume = resumes.find((r) => r.isMaster) || resumes[0];
 
   const handleEnhanceBullet = async () => {
     if (!rawBulletInput.trim()) return;
@@ -86,10 +105,16 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
           targetRole: currentResume?.targetRole || 'Full-Stack Engineer',
         }),
       });
+
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
+
       const data = await res.json();
       setEnhancedBullets(data.enhanced || []);
     } catch (err) {
-      console.error('Enhance bullet error:', err);
+      console.warn('Enhance bullet fallback invoked:', err);
       setEnhancedBullets([
         `Architected and shipped modular React 19 / TypeScript features, decreasing bundle overhead by 38% while sustaining sub-100ms API response rates.`,
         `Engineered high-concurrency Node.js microservices processing 1.4M+ daily operations with 99.99% uptime.`,
@@ -107,37 +132,36 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
 
   const handleVariantCreated = (newResume: ResumeVersion) => {
     setSelectedResumeId(newResume.id);
-    setSuccessNotification('Resume variant created successfully.');
+    setSuccessNotification(`Created resume "${newResume.name}" successfully.`);
     if (onCreateResumeVariant) {
       onCreateResumeVariant(newResume);
     }
-    setTimeout(() => {
-      setSuccessNotification(null);
-    }, 5000);
+    setTimeout(() => setSuccessNotification(null), 4000);
   };
 
-  const handleParsedSuccess = (result: {
-    fileName: string;
-    fileType: string;
-    extractedText: string;
-    parsedData: ParsedResumeData | null;
-    parsingStatus: 'completed' | 'failed' | 'raw_only';
-    parsingError?: string;
-  }) => {
-    setParsedUploadResult(result);
-    setIsUploadModalOpen(false);
-    setIsPreviewEditModalOpen(true);
-  };
-
-  const handleResumeSaved = (savedResume: ResumeVersion) => {
-    setSelectedResumeId(savedResume.id);
-    setSuccessNotification(`Master resume "${savedResume.name}" uploaded & saved successfully.`);
+  const handleUploadSuccess = (newResume: ResumeVersion) => {
+    setSelectedResumeId(newResume.id);
+    setSuccessNotification(`Uploaded and parsed "${newResume.name}" successfully.`);
     if (onCreateResumeVariant) {
-      onCreateResumeVariant(savedResume);
+      onCreateResumeVariant(newResume);
     }
-    setTimeout(() => {
-      setSuccessNotification(null);
-    }, 5000);
+    setTimeout(() => setSuccessNotification(null), 4000);
+  };
+
+  const handleDelete = async (resumeId: string, resumeName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to delete "${resumeName}"?`)) return;
+
+    try {
+      await deleteResume(resumeId);
+      if (onDeleteResume) {
+        onDeleteResume(resumeId);
+      }
+      setSuccessNotification(`Deleted ${resumeName}.`);
+      setTimeout(() => setSuccessNotification(null), 3000);
+    } catch (err) {
+      console.error('Error deleting resume:', err);
+    }
   };
 
   return (
@@ -161,291 +185,363 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
         </div>
       )}
 
-      {/* Top Header */}
+      {/* Main Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-2xl border border-slate-800">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-cyan-400" />
-            <span>Master Resume & Role Variants</span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-cyan-400" />
+              <span>Resume Command Center</span>
+            </h2>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
               {resumes.length} Versions Active
             </span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Tailor high-impact resumes for AI, full-stack, frontend, and engineering management roles.
+          </div>
+          <p className="text-xs text-slate-400 mt-1">
+            Manage your single source of truth Master Resume and generate precision-tailored role variants.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Workspace vs Library View Toggle */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button
+              type="button"
+              id="switch-to-workspace-tab-btn"
+              onClick={() => setActiveTab('workspace')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                activeTab === 'workspace'
+                  ? 'bg-slate-800 text-cyan-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI Workspace</span>
+            </button>
+            <button
+              type="button"
+              id="switch-to-library-tab-btn"
+              onClick={() => setActiveTab('library')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                activeTab === 'library'
+                  ? 'bg-slate-800 text-cyan-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Resume Library</span>
+            </button>
+          </div>
+
           <button
             type="button"
             id="open-upload-resume-modal-btn"
             onClick={() => setIsUploadModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
           >
             <Upload className="w-4 h-4 text-cyan-400" />
-            <span>Upload Resume</span>
+            <span>Upload / Import</span>
           </button>
 
           <button
             type="button"
             id="open-new-resume-variant-modal-btn"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md shadow-cyan-900/30 transition-colors cursor-pointer"
+            onClick={() => setIsCreateVariantModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md shadow-cyan-900/30 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            <span>New Resume Variant</span>
+            <span>New Variant</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Resume Version Selector (4 cols) */}
-        <div className="lg:col-span-4 space-y-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">
-            Target Versions
-          </div>
+      {/* Main Workspace vs Library View */}
+      {activeTab === 'workspace' ? (
+        <ResumeWorkspace
+          resumes={resumes}
+          jobs={jobs}
+          userProfile={userProfile}
+          initialJob={initialJob}
+          onVariantSaved={handleVariantCreated}
+        />
+      ) : (
+        /* Library Mode */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Resume Version Selector (4 cols) */}
+          <div className="lg:col-span-4 space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400 px-1">
+              <span>All Versions ({resumes.length})</span>
+              <span className="text-[10px] text-cyan-400 font-normal">Click to preview</span>
+            </div>
 
-          {resumes.map((res) => (
-            <div
-              key={res.id}
-              onClick={() => setSelectedResumeId(res.id)}
-              className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                selectedResumeId === res.id
-                  ? 'bg-cyan-950/30 border-cyan-500/60 shadow-md shadow-cyan-950/40 ring-1 ring-cyan-500/30'
-                  : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-xs font-bold text-slate-100">{res.name}</h3>
-                    {res.isMaster && (
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                        Master
-                      </span>
-                    )}
-                    {res.variantType && res.variantType !== 'Master' && (
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                        {res.variantType}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-cyan-400 font-medium">{res.targetRole}</div>
-                  {res.targetCompany && (
-                    <div className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <Building2 className="w-3 h-3 text-slate-500" />
-                      <span>{res.targetCompany}</span>
+            {resumes.map((res) => (
+              <div
+                key={res.id}
+                onClick={() => setSelectedResumeId(res.id)}
+                className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                  selectedResumeId === res.id
+                    ? 'bg-cyan-950/30 border-cyan-500/60 shadow-md shadow-cyan-950/40 ring-1 ring-cyan-500/30'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-xs font-bold text-slate-100">{res.name}</h3>
+                      {res.isMaster && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          Master
+                        </span>
+                      )}
+                      {res.variantType && res.variantType !== 'Master' && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                          {res.variantType}
+                        </span>
+                      )}
                     </div>
-                  )}
-                  <div className="text-[10px] text-slate-400">
-                    Updated {res.lastModified} • {res.downloadCount || 0} downloads
+                    <div className="text-xs text-cyan-400 font-medium">{res.targetRole}</div>
+                    {res.targetCompany && (
+                      <div className="text-[11px] text-slate-400 flex items-center gap-1">
+                        <Building2 className="w-3 h-3 text-slate-500" />
+                        <span>{res.targetCompany}</span>
+                      </div>
+                    )}
+                    <div className="text-[10px] text-slate-400">
+                      Updated {res.lastModified} • {res.downloadCount || 0} downloads
+                    </div>
                   </div>
-                </div>
-                <FileText className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-              </div>
 
-              {!res.isMaster && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSetMasterResume(res.id);
-                  }}
-                  className="mt-3 text-[10px] text-slate-400 hover:text-cyan-300 font-semibold flex items-center gap-1"
-                >
-                  <span>Set as primary master</span>
-                  <ChevronRight className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          ))}
-
-          {/* AI Bullet Enhancer Tool */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/40 to-slate-900 border border-purple-500/30 shadow-lg">
-            <div className="flex items-center gap-2 text-xs font-bold text-purple-300 mb-2">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span>AI STAR Bullet Enhancer</span>
-            </div>
-            <p className="text-[11px] text-slate-400 mb-2 leading-relaxed">
-              Paste a draft bullet to transform into a high-impact metric-driven STAR statement.
-            </p>
-            <textarea
-              rows={3}
-              value={rawBulletInput}
-              onChange={(e) => setRawBulletInput(e.target.value)}
-              placeholder="e.g. Worked on the frontend and sped up the dashboard load time."
-              className="w-full p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 placeholder:text-slate-500 focus:ring-1 focus:ring-purple-500 mb-2"
-            />
-            <button
-              onClick={handleEnhanceBullet}
-              disabled={isEnhancing || !rawBulletInput.trim()}
-              className="w-full py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} />
-              <span>{isEnhancing ? 'Optimizing with Gemini...' : 'Enhance with STAR Method'}</span>
-            </button>
-
-            {enhancedBullets.length > 0 && (
-              <div className="mt-3 space-y-2">
-                <div className="text-[10px] font-bold text-purple-300 uppercase">Enhanced Options:</div>
-                {enhancedBullets.map((bullet, i) => (
-                  <div
-                    key={i}
-                    className="p-2.5 rounded-lg bg-slate-800/90 border border-purple-500/30 text-xs text-slate-200 flex items-start justify-between gap-2"
-                  >
-                    <p className="leading-snug">{bullet}</p>
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleCopyBullet(bullet, i)}
-                      className="p-1 rounded bg-slate-700 text-slate-300 hover:text-white"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewModalResume(res);
+                      }}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800"
+                      title="Edit / View in Fullscreen"
                     >
-                      {copiedIndex === i ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <Eye className="w-4 h-4" />
                     </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Active Resume Document Canvas Preview (8 cols) */}
-        {currentResume && (
-          <div className="lg:col-span-8 bg-slate-900/90 p-6 rounded-2xl border border-slate-800 shadow-sm space-y-5">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-slate-100">{currentResume.name}</h3>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300">
-                    {currentResume.targetRole}
-                  </span>
-                  {currentResume.targetCompany && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
-                      {currentResume.targetCompany}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Formatted for modern ATS parsers (Lever, Greenhouse, Workday)
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => alert(`Downloaded ${currentResume.name} in PDF format`)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Export PDF</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Resume Content Sections */}
-            <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-5 text-xs text-slate-300">
-              {/* Name Header */}
-              <div className="text-center pb-4 border-b border-slate-800 space-y-1">
-                <h2 className="text-xl font-black text-white tracking-wide">
-                  {currentResume.parsedData?.personalInfo?.fullName || userProfile.name}
-                </h2>
-                <div className="text-cyan-400 font-semibold">{currentResume.targetRole}</div>
-                <div className="text-[11px] text-slate-400">
-                  {currentResume.parsedData?.personalInfo?.location || userProfile.location} •{' '}
-                  {currentResume.parsedData?.personalInfo?.email || userProfile.email} •{' '}
-                  {currentResume.parsedData?.personalInfo?.phone || userProfile.phone}
-                </div>
-                <div className="text-[11px] text-slate-400 font-mono">
-                  {currentResume.parsedData?.personalInfo?.github || userProfile.github} •{' '}
-                  {currentResume.parsedData?.personalInfo?.linkedin || userProfile.linkedin} •{' '}
-                  {currentResume.parsedData?.personalInfo?.portfolio || userProfile.portfolio}
-                </div>
-              </div>
-
-              {/* Summary */}
-              {currentResume.summary && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-1.5 border-b border-slate-800 pb-1">
-                    Executive Professional Summary
-                  </h4>
-                  <p className="text-xs text-slate-300 leading-relaxed">{currentResume.summary}</p>
-                </div>
-              )}
-
-              {/* Core Skills */}
-              {currentResume.skills && currentResume.skills.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-1.5 border-b border-slate-800 pb-1">
-                    Technical Stack & Core Competencies
-                  </h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {currentResume.skills.map((skill, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 rounded bg-slate-900 text-slate-200 border border-slate-800 text-[11px]"
+                    {!res.isMaster && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(res.id, res.name, e)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800"
+                        title="Delete resume"
                       >
-                        {skill}
-                      </span>
-                    ))}
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
-              )}
 
-              {/* Experience Highlights */}
-              {currentResume.experienceHighlights && currentResume.experienceHighlights.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-2 border-b border-slate-800 pb-1">
-                    Selected High-Impact Experience Highlights
-                  </h4>
-                  <ul className="space-y-2 list-disc list-inside text-slate-300 leading-relaxed">
-                    {currentResume.experienceHighlights.map((highlight, idx) => (
-                      <li key={idx} className="leading-relaxed">
-                        <span className="font-sans">{highlight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                {!res.isMaster && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSetMasterResume(res.id);
+                    }}
+                    className="mt-3 text-[10px] text-slate-400 hover:text-cyan-300 font-semibold flex items-center gap-1"
+                  >
+                    <span>Set as primary master</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            ))}
 
-              {/* Custom Variant Notes if present */}
-              {currentResume.notes && (
-                <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400">
-                  <span className="font-semibold text-slate-300">Variant Notes: </span>
-                  {currentResume.notes}
+            {/* AI Bullet Enhancer Tool */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/40 to-slate-900 border border-purple-500/30 shadow-lg">
+              <div className="flex items-center gap-2 text-xs font-bold text-purple-300 mb-2">
+                <Sparkles className="w-4 h-4 text-purple-400" />
+                <span>AI STAR Bullet Enhancer</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mb-2 leading-relaxed">
+                Transform any raw draft bullet into a quantified STAR statement.
+              </p>
+              <textarea
+                rows={3}
+                value={rawBulletInput || ''}
+                onChange={(e) => setRawBulletInput(e.target.value)}
+                placeholder="e.g. Worked on the frontend and sped up the dashboard load time."
+                className="w-full p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 placeholder:text-slate-500 focus:ring-1 focus:ring-purple-500 mb-2"
+              />
+              <button
+                type="button"
+                onClick={handleEnhanceBullet}
+                disabled={isEnhancing || !rawBulletInput.trim()}
+                className="w-full py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} />
+                <span>{isEnhancing ? 'Optimizing...' : 'Enhance with STAR Method'}</span>
+              </button>
+
+              {enhancedBullets.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <div className="text-[10px] font-bold text-purple-300 uppercase">Enhanced Options:</div>
+                  {enhancedBullets.map((bullet, i) => (
+                    <div
+                      key={i}
+                      className="p-2.5 rounded-lg bg-slate-800/90 border border-purple-500/30 text-xs text-slate-200 flex items-start justify-between gap-2"
+                    >
+                      <p className="leading-snug">{bullet}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyBullet(bullet, i)}
+                        className="p-1 rounded bg-slate-700 text-slate-300 hover:text-white"
+                      >
+                        {copiedIndex === i ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Right Active Resume Preview Canvas (8 cols) */}
+          {currentResume && (
+            <div className="lg:col-span-8 bg-slate-900/90 p-6 rounded-2xl border border-slate-800 shadow-sm space-y-5">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-100">{currentResume.name}</h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300">
+                      {currentResume.targetRole}
+                    </span>
+                    {currentResume.targetCompany && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                        {currentResume.targetCompany}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Formatted for modern ATS parsers (Lever, Greenhouse, Workday)
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewModalResume(currentResume)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Edit / Full View</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Resume Document Content */}
+              <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-5 text-xs text-slate-300">
+                {/* Header */}
+                <div className="text-center pb-4 border-b border-slate-800 space-y-1">
+                  <h2 className="text-xl font-black text-white tracking-wide">{userProfile.name}</h2>
+                  <div className="text-cyan-400 font-semibold">{currentResume.targetRole}</div>
+                  <div className="text-[11px] text-slate-400">
+                    {userProfile.location} • {userProfile.email} • {userProfile.phone}
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono">
+                    {userProfile.github} • {userProfile.linkedin} • {userProfile.portfolio}
+                  </div>
+                </div>
+
+                {/* Summary */}
+                {currentResume.summary && (
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-1.5 border-b border-slate-800 pb-1">
+                      Executive Professional Summary
+                    </h4>
+                    <p className="text-xs text-slate-300 leading-relaxed">{currentResume.summary}</p>
+                  </div>
+                )}
+
+                {/* Skills */}
+                {currentResume.skills && currentResume.skills.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-1.5 border-b border-slate-800 pb-1">
+                      Technical Stack & Core Competencies
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {currentResume.skills.map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 rounded bg-slate-900 text-slate-200 border border-slate-800 text-[11px]"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Experience Highlights */}
+                {currentResume.experienceHighlights && currentResume.experienceHighlights.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-2 border-b border-slate-800 pb-1">
+                      Selected High-Impact Experience Highlights
+                    </h4>
+                    <ul className="space-y-2 list-disc list-inside text-slate-300 leading-relaxed">
+                      {currentResume.experienceHighlights.map((highlight, idx) => (
+                        <li key={idx} className="leading-relaxed">
+                          <span className="font-sans">{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {currentResume.notes && (
+                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400">
+                    <span className="font-semibold text-slate-300">Variant Notes: </span>
+                    {currentResume.notes}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload Master Resume Modal */}
+      <UploadResumeModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onSuccess={handleUploadSuccess}
+      />
 
       {/* Create Resume Variant Modal */}
       <CreateResumeVariantModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        isOpen={isCreateVariantModalOpen}
+        onClose={() => setIsCreateVariantModalOpen(false)}
         resumes={resumes}
         jobs={jobs}
         onVariantCreated={handleVariantCreated}
       />
 
-      {/* Upload Resume Modal */}
-      <UploadResumeModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        onParsedSuccess={handleParsedSuccess}
-      />
-
       {/* Resume Preview & Edit Modal */}
-      {parsedUploadResult && (
-        <ResumePreviewEditModal
-          isOpen={isPreviewEditModalOpen}
-          onClose={() => setIsPreviewEditModalOpen(false)}
-          fileName={parsedUploadResult.fileName}
-          fileType={parsedUploadResult.fileType}
-          extractedText={parsedUploadResult.extractedText}
-          initialParsedData={parsedUploadResult.parsedData}
-          parsingStatus={parsedUploadResult.parsingStatus}
-          parsingError={parsedUploadResult.parsingError}
-          onResumeSaved={handleResumeSaved}
-        />
-      )}
+      <ResumePreviewEditModal
+        isOpen={!!previewModalResume}
+        onClose={() => setPreviewModalResume(null)}
+        resume={previewModalResume}
+        userProfile={userProfile}
+        onSaveUpdatedResume={(updated) => {
+          if (onUpdateResume) {
+            onUpdateResume(updated);
+          }
+          setPreviewModalResume(null);
+        }}
+      />
     </div>
   );
 };

@@ -274,6 +274,46 @@ export interface ResumeVersion {
   updatedAt?: string;
 }
 
+export type DiffChangeType = 'UNCHANGED' | 'REWORDED' | 'REORDERED' | 'ADDED' | 'REMOVED';
+
+export interface BulletDiffItem {
+  masterIndex?: number;
+  masterText: string;
+  tailoredText: string;
+  changeType: DiffChangeType;
+  explanation?: string;
+}
+
+export interface ATSCheckReport {
+  overallScore: number;
+  formattingScore: number;
+  keywordScore: number;
+  pageCountFit: '1 Page (Optimal)' | '2 Pages' | 'Too Long';
+  matchedKeywords: string[];
+  missingKeywords: string[];
+  actionVerbStrength: 'High' | 'Medium' | 'Low';
+  atsPassedChecks: string[];
+  recommendations: string[];
+}
+
+export interface ResumeDiffResult {
+  summaryDiff?: {
+    master: string;
+    tailored: string;
+    isChanged: boolean;
+  };
+  skillsDiff?: {
+    master: string[];
+    tailored: string[];
+    added: string[];
+    reordered: string[];
+  };
+  bulletsDiff: BulletDiffItem[];
+  diffSummary?: string;
+  atsReport?: ATSCheckReport;
+  antiHallucinationVerified?: boolean;
+}
+
 export type CoverLetterTemplate =
   | 'Standard Professional'
   | 'Technical & Architectural'

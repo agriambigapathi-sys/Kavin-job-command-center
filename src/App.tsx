@@ -72,6 +72,7 @@ export default function App() {
 
   // Dynamic context passed between views
   const [analyserTargetJob, setAnalyserTargetJob] = useState<Job | null>(null);
+  const [resumeTargetJob, setResumeTargetJob] = useState<Job | null>(null);
   const [clInitialData, setClInitialData] = useState<{ company?: string; role?: string; jd?: string }>({});
 
   // Modals state
@@ -211,6 +212,11 @@ export default function App() {
   const handleAnalyzeJob = (job: Job) => {
     setAnalyserTargetJob(job);
     setActiveTab('jd-analyser');
+  };
+
+  const handleTailorResume = (job: Job) => {
+    setResumeTargetJob(job);
+    setActiveTab('resumes');
   };
 
   const handleNavigateToCoverLetter = (company: string, role: string, jd: string) => {
@@ -400,11 +406,17 @@ export default function App() {
           {activeTab === 'jobs' && (
             <JobsView
               jobs={jobs}
+              applications={applications}
+              followUps={followUps}
+              interviews={interviews}
               onAnalyzeJob={handleAnalyzeJob}
+              onTailorResume={handleTailorResume}
               onOpenAddJobModal={() => setIsAddJobModalOpen(true)}
               onUpdateJobStatus={handleUpdateJobStatus}
               onDeleteJob={handleDeleteJob}
               onNavigateToTab={setActiveTab}
+              onNavigateToCoverLetter={handleNavigateToCoverLetter}
+              onOpenOutreachModal={handleOpenOutreachForFollowUp}
             />
           )}
 
@@ -422,7 +434,11 @@ export default function App() {
               resumes={resumes}
               jobs={jobs}
               userProfile={userProfile}
+              initialJob={resumeTargetJob}
               onSetMasterResume={handleSetMasterResume}
+              onCreateResumeVariant={(newR) => setResumes([newR, ...resumes])}
+              onUpdateResume={(upR) => setResumes(resumes.map((r) => (r.id === upR.id ? upR : r)))}
+              onDeleteResume={(delId) => setResumes(resumes.filter((r) => r.id !== delId))}
             />
           )}
 

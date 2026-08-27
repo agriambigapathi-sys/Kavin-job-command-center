@@ -201,7 +201,7 @@ export const InterviewsView: React.FC<InterviewsViewProps> = ({ interviews = [] 
               </label>
               <textarea
                 rows={3}
-                value={debriefText}
+                value={debriefText || ''}
                 onChange={(e) => setDebriefText(e.target.value)}
                 placeholder="Log questions they asked, how you felt about your technical answers, and follow-up topics..."
                 className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-500 focus:ring-1 focus:ring-purple-500"

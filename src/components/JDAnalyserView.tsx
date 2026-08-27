@@ -755,7 +755,7 @@ ${analysisResult.bulletRecommendations?.map((b) => `- ${b}`).join('\n')}
               <label className="block text-xs font-medium text-slate-400 mb-1">Job Title</label>
               <input
                 type="text"
-                value={jobTitle}
+                value={jobTitle || ''}
                 onChange={(e) => {
                   setJobTitle(e.target.value);
                   setAnalysisResult(null);
@@ -768,7 +768,7 @@ ${analysisResult.bulletRecommendations?.map((b) => `- ${b}`).join('\n')}
               <label className="block text-xs font-medium text-slate-400 mb-1">Company</label>
               <input
                 type="text"
-                value={company}
+                value={company || ''}
                 onChange={(e) => {
                   setCompany(e.target.value);
                   setAnalysisResult(null);
@@ -800,7 +800,7 @@ ${analysisResult.bulletRecommendations?.map((b) => `- ${b}`).join('\n')}
 
             {!isCustomResumeMode ? (
               <select
-                value={selectedResumeId}
+                value={selectedResumeId || ''}
                 onChange={(e) => handleSelectResume(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
               >
@@ -813,7 +813,7 @@ ${analysisResult.bulletRecommendations?.map((b) => `- ${b}`).join('\n')}
             ) : (
               <textarea
                 rows={4}
-                value={customResumeText}
+                value={customResumeText || ''}
                 onChange={(e) => {
                   setCustomResumeText(e.target.value);
                   setAnalysisResult(null);
@@ -830,11 +830,11 @@ ${analysisResult.bulletRecommendations?.map((b) => `- ${b}`).join('\n')}
               <label className="text-xs font-medium text-slate-300">
                 Full Job Description Requirements
               </label>
-              <span className="text-[10px] text-slate-400 font-mono">{jobDescription.length} characters</span>
+              <span className="text-[10px] text-slate-400 font-mono">{(jobDescription || '').length} characters</span>
             </div>
             <textarea
               rows={8}
-              value={jobDescription}
+              value={jobDescription || ''}
               onChange={(e) => {
                 setJobDescription(e.target.value);
                 setAnalysisResult(null);
@@ -1139,7 +1139,7 @@ ${analysisResult.bulletRecommendations?.map((b) => `- ${b}`).join('\n')}
                   <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="text"
-                    value={searchTerm}
+                    value={searchTerm || ''}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search keywords, evidence quotes, or categories..."
                     className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500"

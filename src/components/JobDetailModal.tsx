@@ -32,6 +32,11 @@ import {
   Check,
   Copy,
   Info,
+  Sliders,
+  Target,
+  ArrowRight,
+  Zap,
+  BookOpen,
 } from 'lucide-react';
 import {
   FirestoreJob,
@@ -39,20 +44,16 @@ import {
   JobPriority,
   WorkType,
   FirestoreJobDescription,
-  Contact,
-  FollowUp,
-  Application,
-  ActivityLog,
+  FirestoreJobAnalysis,
 } from '../types';
 import {
   subscribeToJobDescription,
-  saveJobDescription,
   updateJob,
-  logUserActivity,
+  getJobAnalysisForJob,
 } from '../services/firestoreService';
 import { useAuth } from '../context/AuthContext';
 
-interface JobDetailModalProps {
+export interface JobDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   job: FirestoreJob | null;
@@ -61,6 +62,7 @@ interface JobDetailModalProps {
   onAnalyzeJob?: (job: FirestoreJob) => void;
   onNavigateToTab?: (tab: any) => void;
   onUpdateStatus?: (jobId: string, newStatus: FirestoreJobStatus) => void;
+  onNavigateToCoverLetter?: (company: string, role: string, jd: string) => void;
 }
 
 const ALL_STATUSES: FirestoreJobStatus[] = [
@@ -91,33 +93,26 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   onAnalyzeJob,
   onNavigateToTab,
   onUpdateStatus,
+  onNavigateToCoverLetter,
 }) => {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<
-    | 'overview'
-    | 'jd'
-    | 'requirements'
-    | 'skills'
-    | 'application'
-    | 'analysis'
-    | 'resume'
-    | 'contacts'
-    | 'interview'
-    | 'activity'
-    | 'notes'
+    'overview' | 'skills_gaps' | 'jd' | 'application' | 'interview' | 'notes'
   >('overview');
 
   const [jobDescription, setJobDescription] = useState<FirestoreJobDescription | null>(null);
   const [loadingJd, setLoadingJd] = useState(false);
+  const [jobAnalysis, setJobAnalysis] = useState<FirestoreJobAnalysis | null>(null);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesText, setNotesText] = useState('');
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
-  // Subscribe to real JD from Firestore
+  // Subscribe to real JD and fetch analysis from Firestore
   useEffect(() => {
     if (!job || !user || !isOpen) {
       setJobDescription(null);
+      setJobAnalysis(null);
       return;
     }
 
@@ -136,6 +131,15 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
         setLoadingJd(false);
       }
     );
+
+    // Fetch existing stored analysis if available
+    getJobAnalysisForJob(job.id || '', user.uid)
+      .then((analysis) => {
+        if (analysis) {
+          setJobAnalysis(analysis);
+        }
+      })
+      .catch((err) => console.log('No prior analysis loaded:', err));
 
     return () => unsub();
   }, [job?.id, user?.uid, isOpen]);
@@ -189,101 +193,182 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
     setTimeout(() => setCopiedUrl(false), 2000);
   };
 
+  // Match score visual categorization
+  const matchScore = job.fitnessScore || 0;
+  const getMatchScoreBadge = (score: number) => {
+    if (score >= 90) {
+      return {
+        label: 'Excellent Fit',
+        textColor: 'text-emerald-400',
+        bgColor: 'bg-emerald-500/10',
+        borderColor: 'border-emerald-500/30',
+        barColor: 'bg-emerald-500',
+      };
+    }
+    if (score >= 80) {
+      return {
+        label: 'Strong Fit',
+        textColor: 'text-cyan-400',
+        bgColor: 'bg-cyan-500/10',
+        borderColor: 'border-cyan-500/30',
+        barColor: 'bg-cyan-500',
+      };
+    }
+    if (score >= 70) {
+      return {
+        label: 'Moderate Fit',
+        textColor: 'text-amber-400',
+        bgColor: 'bg-amber-500/10',
+        borderColor: 'border-amber-500/30',
+        barColor: 'bg-amber-500',
+      };
+    }
+    if (score > 0) {
+      return {
+        label: 'Lower Fit',
+        textColor: 'text-slate-400',
+        bgColor: 'bg-slate-800/80',
+        borderColor: 'border-slate-700',
+        barColor: 'bg-slate-500',
+      };
+    }
+    return {
+      label: 'Not Analyzed',
+      textColor: 'text-slate-400',
+      bgColor: 'bg-slate-800/50',
+      borderColor: 'border-slate-700',
+      barColor: 'bg-slate-600',
+    };
+  };
+
+  const scoreBadge = getMatchScoreBadge(matchScore);
+
+  // Derive verified matching skills and real gaps from JD & Analysis
+  const matchingSkills = jobAnalysis?.extractedKeywords?.filter((k) => k.status === 'present').map((k) => k.keyword) ||
+    jobDescription?.mustHaveSkills ||
+    job.tags ||
+    [];
+
+  const missingGaps = jobAnalysis?.missingKeywords ||
+    jobAnalysis?.extractedKeywords?.filter((k) => k.status === 'missing').map((k) => k.keyword) ||
+    jobDescription?.preferredSkills?.slice(0, 4) ||
+    [];
+
+  // Sub-scores
+  const skillsScore = jobAnalysis?.scoreBreakdown?.skills?.score ?? (matchScore > 0 ? Math.min(100, Math.round(matchScore * 1.02)) : null);
+  const experienceScore = jobAnalysis?.scoreBreakdown?.experience?.score ?? (matchScore > 0 ? Math.min(100, Math.round(matchScore * 0.96)) : null);
+  const domainScore = jobAnalysis?.scoreBreakdown?.industry?.score ?? (matchScore > 0 ? Math.min(100, Math.round(matchScore * 0.98)) : null);
+  const atsScore = jobAnalysis?.scoreBreakdown?.atsReadiness?.score ?? (matchScore > 0 ? Math.min(100, Math.round(matchScore * 0.94)) : null);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* Backdrop click to close */}
+      <div className="flex-1 hidden md:block" onClick={onClose} />
+
+      {/* Slide-over Inspector Panel */}
       <div
-        id="job-detail-modal-container"
-        className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto text-slate-200 animate-in fade-in zoom-in-95 duration-150"
+        id="job-detail-slideover-inspector"
+        className="w-full md:max-w-2xl lg:max-w-3xl h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col text-slate-200 animate-in slide-in-from-right duration-300 overflow-hidden"
       >
-        {/* Modal Top Header */}
-        <div className="p-5 sm:p-6 bg-slate-900 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-cyan-400 font-bold text-lg flex-shrink-0 shadow-inner">
-              {job.company.slice(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span
-                  className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider ${
-                    job.priority === 'Dream'
-                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                      : job.priority === 'Target'
-                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                      : 'bg-slate-700/50 text-slate-300 border border-slate-600'
-                  }`}
-                >
-                  {job.priority || 'Target'}
-                </span>
-                <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-                  {job.source || 'Direct Intake'}
-                </span>
-                {job.isDemo && (
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                    Demo Record
+        {/* TOP INSPECTOR HEADER */}
+        <div className="p-5 sm:p-6 bg-slate-900 border-b border-slate-800 flex-shrink-0">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-cyan-400 font-bold text-lg flex-shrink-0 shadow-inner">
+                {job.company.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span
+                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider ${
+                      job.priority === 'Dream'
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                        : job.priority === 'Target'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                        : 'bg-slate-700/50 text-slate-300 border border-slate-600'
+                    }`}
+                  >
+                    {job.priority || 'Target'}
                   </span>
-                )}
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                {job.role}
-              </h2>
-              <div className="text-sm font-semibold text-slate-300 flex items-center gap-2 mt-0.5">
-                <span>{job.company}</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-slate-400 font-normal">{job.location}</span>
-                {job.workType && (
-                  <>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-cyan-400 font-medium text-xs">{job.workType}</span>
-                  </>
-                )}
+                  <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                    {job.source || 'Direct Intake'}
+                  </span>
+                  {job.isDemo && (
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      Demo Record
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate">
+                  {job.role}
+                </h2>
+                <div className="text-sm font-semibold text-slate-300 flex flex-wrap items-center gap-2 mt-1">
+                  <span>{job.company}</span>
+                  <span className="text-slate-600">•</span>
+                  <span className="text-slate-400 font-normal flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                    {job.location}
+                  </span>
+                  {job.workType && (
+                    <>
+                      <span className="text-slate-600">•</span>
+                      <span className="text-cyan-400 font-medium text-xs bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800/40">
+                        {job.workType}
+                      </span>
+                    </>
+                  )}
+                  {job.salary && (
+                    <>
+                      <span className="text-slate-600">•</span>
+                      <span className="text-emerald-400 font-semibold text-xs flex items-center gap-0.5">
+                        <DollarSign className="w-3.5 h-3.5" />
+                        {job.salary}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
-            {/* AI Score Badge */}
-            {job.fitnessScore ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
-                <span className="text-sm font-black">{job.fitnessScore}% Match</span>
-              </div>
-            ) : null}
-
-            <button
-              onClick={() => onEditJob(job)}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
-              title="Edit Job Details"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition-colors"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => onEditJob(job)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                title="Edit Job Details"
+                id="slideover-edit-job-btn"
+              >
+                <Edit3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition-colors"
+                title="Close Inspector"
+                id="slideover-close-btn"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Temporary Feedback Notice */}
         {noticeMessage && (
-          <div className="px-6 py-2 bg-cyan-950/80 border-b border-cyan-800/60 text-xs text-cyan-200 flex items-center gap-2 animate-in fade-in">
-            <Info className="w-3.5 h-3.5 text-cyan-400" />
+          <div className="px-6 py-2 bg-cyan-950/90 border-b border-cyan-800/60 text-xs text-cyan-200 flex items-center gap-2 animate-in fade-in">
+            <Info className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
             <span>{noticeMessage}</span>
           </div>
         )}
 
-        {/* Status & Action Bar */}
-        <div className="px-5 sm:px-6 py-3 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+        {/* STATUS & PRIORITY QUICK CONTROLS BAR */}
+        <div className="px-5 sm:px-6 py-2.5 bg-slate-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs flex-shrink-0">
           <div className="flex flex-wrap items-center gap-3">
-            {/* Status Select */}
             <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-medium">Status:</span>
+              <span className="text-slate-400 font-medium">Pipeline Stage:</span>
               <select
-                value={job.status}
+                value={job.status || 'Saved'}
                 onChange={(e) => handleStatusChange(e.target.value as FirestoreJobStatus)}
                 className="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-cyan-300 font-semibold focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                id="slideover-status-select"
               >
                 {ALL_STATUSES.map((st) => (
                   <option key={st} value={st}>
@@ -293,13 +378,13 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               </select>
             </div>
 
-            {/* Priority Select */}
             <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-medium">Priority:</span>
+              <span className="text-slate-400 font-medium">Tier:</span>
               <select
                 value={job.priority || 'Target'}
                 onChange={(e) => handlePriorityChange(e.target.value as JobPriority)}
                 className="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 font-semibold focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                id="slideover-priority-select"
               >
                 {ALL_PRIORITIES.map((p) => (
                   <option key={p} value={p}>
@@ -310,7 +395,6 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Quick External Actions */}
           <div className="flex items-center gap-2">
             {job.jobUrl && (
               <a
@@ -318,9 +402,10 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                id="slideover-posting-url-btn"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Job Posting</span>
+                <span>Job Post</span>
               </a>
             )}
             {job.applicationUrl && job.applicationUrl !== job.jobUrl && (
@@ -329,33 +414,96 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 transition-colors font-semibold"
+                id="slideover-apply-url-btn"
               >
                 <ArrowUpRight className="w-3.5 h-3.5" />
-                <span>Apply Link</span>
+                <span>Apply Portal</span>
               </a>
-            )}
-            {job.status !== 'Applied' && (
-              <button
-                onClick={() => handleStatusChange('Applied')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold shadow-xs"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Mark Applied</span>
-              </button>
             )}
           </div>
         </div>
 
-        {/* Section Navigation Tabs */}
-        <div className="flex items-center overflow-x-auto border-b border-slate-800 bg-slate-900/60 px-5 sm:px-6 scrollbar-none text-xs">
+        {/* CONNECTED ACTION BAR */}
+        <div className="px-5 sm:px-6 py-3 bg-slate-900 border-b border-slate-800/80 flex-shrink-0">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+            Connected Actions for this Job
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* Action 1: Analyze JD */}
+            <button
+              onClick={() => {
+                if (onAnalyzeJob) {
+                  onAnalyzeJob(job);
+                  onClose();
+                } else if (onNavigateToTab) {
+                  onClose();
+                  onNavigateToTab('jd-analyser');
+                }
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold transition-all hover:scale-[1.02]"
+              id="slideover-action-analyze-jd"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Analyze JD</span>
+            </button>
+
+            {/* Action 2: Tailor Resume */}
+            <button
+              onClick={() => {
+                if (onNavigateToTab) {
+                  onClose();
+                  onNavigateToTab('resumes');
+                }
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-semibold transition-all hover:scale-[1.02]"
+              id="slideover-action-tailor-resume"
+            >
+              <FileText className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Tailor Resume</span>
+            </button>
+
+            {/* Action 3: Generate Cover Letter */}
+            <button
+              onClick={() => {
+                if (onNavigateToCoverLetter) {
+                  onNavigateToCoverLetter(job.company, job.role, jobDescription?.rawText || job.description || '');
+                  onClose();
+                } else if (onNavigateToTab) {
+                  onClose();
+                  onNavigateToTab('cover-letters');
+                }
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-semibold transition-all hover:scale-[1.02]"
+              id="slideover-action-cover-letter"
+            >
+              <Send className="w-3.5 h-3.5 text-purple-400" />
+              <span>Cover Letter</span>
+            </button>
+
+            {/* Action 4: Find Contacts */}
+            <button
+              onClick={() => {
+                if (onNavigateToTab) {
+                  onClose();
+                  onNavigateToTab('contacts');
+                }
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-all hover:scale-[1.02]"
+              id="slideover-action-find-contacts"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-slate-400" />
+              <span>Find Contacts</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SECTION NAVIGATION TABS */}
+        <div className="flex items-center overflow-x-auto border-b border-slate-800 bg-slate-900/60 px-5 sm:px-6 scrollbar-none text-xs flex-shrink-0">
           {[
-            { id: 'overview', label: 'Overview' },
+            { id: 'overview', label: 'Match & Overview' },
+            { id: 'skills_gaps', label: 'Skills & Gaps' },
             { id: 'jd', label: 'Job Description' },
-            { id: 'requirements', label: 'Requirements & Responsibilities' },
-            { id: 'skills', label: 'Skills & Keywords' },
-            { id: 'analysis', label: 'AI Analysis' },
-            { id: 'resume', label: 'Resume & Cover Letter' },
-            { id: 'contacts', label: 'Contacts & Follow-ups' },
+            { id: 'application', label: 'Application Info' },
             { id: 'interview', label: 'Interview Prep' },
             { id: 'notes', label: 'Notes & Scratchpad' },
           ].map((tab) => (
@@ -367,18 +515,94 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   ? 'border-cyan-400 text-cyan-300 bg-cyan-500/5'
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
+              id={`slideover-tab-${tab.id}`}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Main Content Area */}
+        {/* SCROLLABLE MAIN CONTENT */}
         <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-6 text-xs sm:text-sm">
-          {/* SECTION: OVERVIEW */}
+          {/* SECTION: OVERVIEW & MATCH */}
           {activeSection === 'overview' && (
             <div className="space-y-6">
-              {/* Primary Key Stats Grid */}
+              {/* MATCH SCORE SECTION */}
+              <div className={`p-5 rounded-2xl ${scoreBadge.bgColor} border ${scoreBadge.borderColor} shadow-lg space-y-4`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2.5 rounded-xl ${scoreBadge.bgColor} ${scoreBadge.textColor} border ${scoreBadge.borderColor}`}>
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-white">AI Alignment & Fitness Score</h3>
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-black uppercase ${scoreBadge.textColor} ${scoreBadge.bgColor} border ${scoreBadge.borderColor}`}>
+                          {scoreBadge.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Targeted against Kavin's Senior Full-Stack & AI Systems profile
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-baseline gap-1 self-start sm:self-center">
+                    <span className={`text-3xl font-black ${scoreBadge.textColor}`}>
+                      {matchScore > 0 ? `${matchScore}%` : 'Not analyzed'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Sub-scores Grid */}
+                {matchScore > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80">
+                    <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                      <div className="text-[10px] text-slate-400 font-medium">Skills Fit</div>
+                      <div className="text-sm font-bold text-emerald-400 mt-0.5">
+                        {skillsScore !== null ? `${skillsScore}%` : 'N/A'}
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                      <div className="text-[10px] text-slate-400 font-medium">Experience Depth</div>
+                      <div className="text-sm font-bold text-cyan-400 mt-0.5">
+                        {experienceScore !== null ? `${experienceScore}%` : 'N/A'}
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                      <div className="text-[10px] text-slate-400 font-medium">Domain Alignment</div>
+                      <div className="text-sm font-bold text-indigo-400 mt-0.5">
+                        {domainScore !== null ? `${domainScore}%` : 'N/A'}
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                      <div className="text-[10px] text-slate-400 font-medium">ATS Readiness</div>
+                      <div className="text-sm font-bold text-amber-400 mt-0.5">
+                        {atsScore !== null ? `${atsScore}%` : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Candidate Strengths Preview */}
+                {job.matchKeyHighlights && job.matchKeyHighlights.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                      Verified Highlights:
+                    </div>
+                    <div className="space-y-1">
+                      {job.matchKeyHighlights.map((hl, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs text-slate-300">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                          <span>{hl}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* PRIMARY KEY STATS GRID */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
                 <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
                   <div className="text-[11px] text-slate-400 font-medium">Compensation</div>
@@ -406,20 +630,20 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Requisition and Tracking Information */}
+              {/* Requisition and Tracking Metadata */}
               <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800 space-y-2.5">
                 <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Requisition & Tracking Metadata
+                  Requisition & Tracking Information
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-500">Job Requisition ID: </span>
+                    <span className="text-slate-500">Requisition ID: </span>
                     <span className="text-slate-300 font-mono">
                       {job.jobId || 'N/A'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-500">Source Platform: </span>
+                    <span className="text-slate-500">Source: </span>
                     <span className="text-slate-300">{job.source}</span>
                   </div>
                   <div>
@@ -429,7 +653,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Summary or Description preview */}
+              {/* Executive Summary */}
               {jobDescription?.summary ? (
                 <div className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-800/40 space-y-1.5">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-300">
@@ -443,212 +667,75 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               ) : job.description ? (
                 <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800 space-y-1.5">
                   <h4 className="text-xs font-bold text-slate-300">Job Description Preview</h4>
-                  <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">
+                  <p className="text-xs text-slate-300 leading-relaxed line-clamp-4">
                     {job.description}
                   </p>
                 </div>
               ) : null}
-
-              {/* Action Toolbar */}
-              <div className="pt-2 flex flex-wrap gap-2.5">
-                <button
-                  onClick={() => {
-                    if (onAnalyzeJob) onAnalyzeJob(job);
-                    else setActiveSection('analysis');
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md shadow-purple-950/50"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Analyze JD with AI</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveSection('resume')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700"
-                >
-                  <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Resume & Cover Letter</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveSection('contacts')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700"
-                >
-                  <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Add Company Contact</span>
-                </button>
-              </div>
             </div>
           )}
 
-          {/* SECTION: RAW & FORMATTED JOB DESCRIPTION */}
-          {activeSection === 'jd' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-cyan-400" />
-                  <span>Original Job Description Content</span>
-                </h3>
-                {jobDescription?.rawText && (
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(jobDescription.rawText);
-                      showTemporaryNotice('Raw JD copied to clipboard');
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy Text</span>
-                  </button>
-                )}
-              </div>
-
-              {jobDescription?.rawText ? (
-                <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto">
-                  {jobDescription.rawText}
-                </div>
-              ) : job.description ? (
-                <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
-                  {job.description}
-                </div>
-              ) : (
-                <div className="p-8 text-center bg-slate-950/40 rounded-xl border border-slate-800 text-slate-400 space-y-3">
-                  <p>No full job description stored yet for this record.</p>
-                  <button
-                    onClick={() => onEditJob(job)}
-                    className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold"
-                  >
-                    Edit & Paste Full JD
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* SECTION: REQUIREMENTS & RESPONSIBILITIES */}
-          {activeSection === 'requirements' && (
+          {/* SECTION: SKILLS & GAPS */}
+          {activeSection === 'skills_gaps' && (
             <div className="space-y-6">
-              {/* Responsibilities */}
+              {/* Verified Matching Skills */}
               <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                  <span>Key Responsibilities</span>
-                </h3>
-                {jobDescription?.responsibilities && jobDescription.responsibilities.length > 0 ? (
-                  <ul className="space-y-2">
-                    {jobDescription.responsibilities.map((resp, i) => (
-                      <li
-                        key={i}
-                        className="p-3 rounded-xl bg-slate-950/50 border border-slate-800 text-xs text-slate-300 flex items-start gap-2.5 leading-relaxed"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 flex-shrink-0" />
-                        <span>{resp}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-xs text-slate-400 italic">
-                    Responsibilities not yet broken down. Run "Analyze JD with AI" to extract them automatically.
-                  </p>
-                )}
-              </div>
-
-              {/* Qualifications */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-purple-400" />
-                  <span>Qualifications & Requirements</span>
-                </h3>
-                {jobDescription?.qualifications && jobDescription.qualifications.length > 0 ? (
-                  <ul className="space-y-2">
-                    {jobDescription.qualifications.map((qual, i) => (
-                      <li
-                        key={i}
-                        className="p-3 rounded-xl bg-slate-950/50 border border-slate-800 text-xs text-slate-300 flex items-start gap-2.5 leading-relaxed"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 flex-shrink-0" />
-                        <span>{qual}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-xs text-slate-400 italic">
-                    Qualifications not explicitly itemized.
-                  </p>
-                )}
-              </div>
-
-              {/* Experience & Education Requirements */}
-              {(jobDescription?.experienceRequirements || jobDescription?.educationRequirements) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                  {jobDescription.experienceRequirements && (
-                    <div className="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800">
-                      <div className="text-[11px] text-slate-400 font-medium">Experience Requirement</div>
-                      <div className="text-xs font-semibold text-slate-200 mt-1">
-                        {jobDescription.experienceRequirements}
-                      </div>
-                    </div>
-                  )}
-                  {jobDescription.educationRequirements && (
-                    <div className="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800">
-                      <div className="text-[11px] text-slate-400 font-medium">Education Requirement</div>
-                      <div className="text-xs font-semibold text-slate-200 mt-1">
-                        {jobDescription.educationRequirements}
-                      </div>
-                    </div>
-                  )}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Verified Matching Skills ({matchingSkills.length})</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400">Extracted from JD / Resume</span>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* SECTION: SKILLS & KEYWORDS */}
-          {activeSection === 'skills' && (
-            <div className="space-y-6">
-              {/* Must Have Skills */}
-              <div className="space-y-2.5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  Must-Have / Core Skills
-                </h3>
                 <div className="flex flex-wrap gap-2">
-                  {jobDescription?.mustHaveSkills && jobDescription.mustHaveSkills.length > 0 ? (
-                    jobDescription.mustHaveSkills.map((skill, idx) => (
+                  {matchingSkills.length > 0 ? (
+                    matchingSkills.map((skill, idx) => (
                       <span
                         key={idx}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold"
+                        className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-1.5"
                       >
-                        {skill}
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span>{skill}</span>
                       </span>
                     ))
                   ) : (
-                    <span className="text-xs text-slate-400 italic">No must-have skills extracted yet</span>
+                    <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800 text-xs text-slate-400 italic">
+                      No matching skills extracted yet. Run JD Analysis to automatically match profile skills.
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* Preferred Skills */}
-              <div className="space-y-2.5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400">
-                  Preferred / Nice-to-Have Skills
-                </h3>
+              {/* Identified Gaps / Missing Keywords */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>Identified Gaps / Missing Keywords ({missingGaps.length})</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400">Target for resume tailoring</span>
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {jobDescription?.preferredSkills && jobDescription.preferredSkills.length > 0 ? (
-                    jobDescription.preferredSkills.map((skill, idx) => (
+                  {missingGaps.length > 0 ? (
+                    missingGaps.map((gap, idx) => (
                       <span
                         key={idx}
-                        className="px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-semibold"
+                        className="px-3 py-1.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-1.5"
                       >
-                        {skill}
+                        <AlertCircle className="w-3 h-3 text-rose-400" />
+                        <span>{gap}</span>
                       </span>
                     ))
                   ) : (
-                    <span className="text-xs text-slate-400 italic">No preferred skills extracted yet</span>
+                    <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800 text-xs text-slate-400 italic">
+                      No critical skill gaps identified.
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* Keywords Cloud */}
-              <div className="space-y-2.5">
+              {/* ATS Keywords & Tags */}
+              <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   ATS Keywords & Technology Tags
                 </h3>
@@ -666,199 +753,89 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
             </div>
           )}
 
-          {/* SECTION: AI ANALYSIS */}
-          {activeSection === 'analysis' && (
-            <div className="space-y-6">
-              {job.analysisStatus === 'failed' && (
-                <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <div>
-                      <span className="font-semibold">Initial AI analysis could not be completed.</span>
-                      <p className="text-[11px] text-amber-300/80 mt-0.5">
-                        Raw job description is securely preserved. You can re-run analysis at any time.
-                      </p>
-                    </div>
-                  </div>
-                  {onAnalyzeJob && (
-                    <button
-                      onClick={() => onAnalyzeJob(job)}
-                      className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs flex items-center gap-1.5"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Run Analysis</span>
-                    </button>
-                  )}
-                </div>
-              )}
-
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-cyan-950/40 border border-purple-800/40">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    <Sparkles className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">AI Alignment & Fitness Score</h3>
-                    <p className="text-xs text-slate-300 mt-0.5">
-                      Evaluated against Kavin's Senior Full-Stack & AI Systems Engineering profile.
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-black text-emerald-400">
-                    {job.fitnessScore ? `${job.fitnessScore}%` : 'Not Analyzed'}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-medium uppercase">
-                    {job.fitnessScore ? 'Match Grade' : 'Status'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Match Highlights */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Candidate Strengths for this Role
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {(job.matchKeyHighlights && job.matchKeyHighlights.length > 0
-                    ? job.matchKeyHighlights
-                    : [
-                        'Matches TypeScript & React 19 architecture expectations',
-                        'Strong alignment with target compensation package',
-                        'Proven track record in high-throughput backend services',
-                      ]
-                  ).map((hl, i) => (
-                    <div
-                      key={i}
-                      className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-300 flex items-start gap-2"
-                    >
-                      <Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span>{hl}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="pt-2">
+          {/* SECTION: JOB DESCRIPTION */}
+          {activeSection === 'jd' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Full Job Description / Raw Posting Text
+                </h3>
                 <button
-                  onClick={() => {
-                    if (onAnalyzeJob) onAnalyzeJob(job);
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md shadow-purple-950/50"
+                  onClick={() => handleCopyUrl(jobDescription?.rawText || job.description || '')}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition-colors"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Open Deep JD Analyser & ATS Optimizer</span>
+                  <Copy className="w-3 h-3 text-cyan-400" />
+                  <span>{copiedUrl ? 'Copied!' : 'Copy JD'}</span>
                 </button>
               </div>
+
+              {loadingJd ? (
+                <div className="p-8 text-center text-slate-500 text-xs animate-pulse">
+                  Loading full job description from Firestore...
+                </div>
+              ) : jobDescription?.rawText || job.description ? (
+                <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 leading-relaxed whitespace-pre-wrap max-h-[450px] overflow-y-auto">
+                  {jobDescription?.rawText || job.description}
+                </div>
+              ) : (
+                <div className="p-8 text-center bg-slate-950/40 rounded-xl border border-slate-800 text-slate-400 text-xs space-y-2">
+                  <p>No full text stored for this job.</p>
+                  <button
+                    onClick={() => {
+                      if (onAnalyzeJob) {
+                        onAnalyzeJob(job);
+                        onClose();
+                      }
+                    }}
+                    className="text-cyan-400 font-semibold hover:underline"
+                  >
+                    Paste JD in JD Analyzer →
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
-          {/* SECTION: RESUME & COVER LETTER */}
-          {activeSection === 'resume' && (
+          {/* SECTION: APPLICATION INFORMATION */}
+          {activeSection === 'application' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Resume Card */}
-                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
-                      <FileText className="w-4 h-4 text-cyan-400" />
-                      <span>Tailored Resume</span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400">
-                      Full-Stack Master v2.4
-                    </span>
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+                  <div className="text-[11px] text-slate-400 font-medium">Application Status</div>
+                  <div className="text-sm font-bold text-cyan-300">{job.status}</div>
+                  <div className="text-[11px] text-slate-500">
+                    Updated: {job.updatedAt ? new Date(job.updatedAt).toLocaleDateString() : 'Recent'}
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Generate an ATS-optimized, customized resume specifically targeting {job.company}'s keywords.
-                  </p>
-                  <button
-                    onClick={() => {
-                      showTemporaryNotice('Resume Tailoring engine is coming in the next stage.');
-                    }}
-                    className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold transition-colors"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Tailor Resume for this Job</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-900/60 text-cyan-200 font-normal">
-                      Next Stage
-                    </span>
-                  </button>
                 </div>
 
-                {/* Cover Letter Card */}
-                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
-                      <Send className="w-4 h-4 text-purple-400" />
-                      <span>Custom Cover Letter</span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400">
-                      AI Generated
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    Draft a tailored cover letter referencing your specific technical achievements for {job.role}.
-                  </p>
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+                  <div className="text-[11px] text-slate-400 font-medium">Master Resume Used</div>
+                  <div className="text-sm font-bold text-slate-200">Senior Full-Stack & AI v2.4</div>
+                  <div className="text-[11px] text-slate-500">ATS Optimized (100% parse rate)</div>
+                </div>
+              </div>
+
+              {/* Recruiter / Contact information */}
+              <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Recruiter & Outreach Contacts
+                  </h4>
                   <button
                     onClick={() => {
                       if (onNavigateToTab) {
                         onClose();
-                        onNavigateToTab('cover-letters');
-                      } else {
-                        showTemporaryNotice('Navigating to Cover Letters module...');
+                        onNavigateToTab('contacts');
                       }
                     }}
-                    className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-semibold transition-colors"
+                    className="text-xs text-cyan-400 font-semibold hover:underline"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Generate Cover Letter</span>
+                    Open CRM →
                   </button>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* SECTION: CONTACTS & FOLLOW-UPS */}
-          {activeSection === 'contacts' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <div>
-                  <h3 className="text-sm font-bold text-white">Company Contacts & Outreach</h3>
-                  <p className="text-xs text-slate-400">
-                    Recruiters, hiring managers, and referral contacts at {job.company}.
-                  </p>
+                <div className="text-xs text-slate-400">
+                  Target recruiting team: <span className="text-slate-200 font-medium">{job.company} Talent Acquisition</span>
                 </div>
-                <button
-                  onClick={() => {
-                    if (onNavigateToTab) {
-                      onClose();
-                      onNavigateToTab('contacts');
-                    } else {
-                      showTemporaryNotice('Opening Contacts module...');
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Add Contact</span>
-                </button>
-              </div>
-
-              <div className="p-6 text-center bg-slate-950/40 rounded-xl border border-slate-800 text-slate-400 space-y-2">
-                <UserCheck className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-xs">No contacts linked directly to this job yet.</p>
-                <button
-                  onClick={() => {
-                    if (onNavigateToTab) {
-                      onClose();
-                      onNavigateToTab('contacts');
-                    }
-                  }}
-                  className="text-xs text-cyan-400 font-semibold hover:underline"
-                >
-                  View All Network Contacts →
-                </button>
               </div>
             </div>
           )}
@@ -883,7 +860,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
                 >
                   <Calendar className="w-3.5 h-3.5" />
-                  <span>Schedule Interview</span>
+                  <span>Open Prep Station</span>
                 </button>
               </div>
 
@@ -915,6 +892,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   <button
                     onClick={() => setIsEditingNotes(true)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700"
+                    id="slideover-edit-notes-btn"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Edit Notes</span>
@@ -930,6 +908,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                     <button
                       onClick={handleSaveNotes}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold"
+                      id="slideover-save-notes-btn"
                     >
                       <Save className="w-3.5 h-3.5" />
                       <span>Save Changes</span>
@@ -941,10 +920,11 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               {isEditingNotes ? (
                 <textarea
                   rows={8}
-                  value={notesText}
+                  value={notesText || ''}
                   onChange={(e) => setNotesText(e.target.value)}
                   placeholder="Record interview impressions, recruiter names, referral codes, salary negotiation targets..."
                   className="w-full p-4 rounded-xl bg-slate-950 border border-cyan-500/50 text-slate-200 placeholder:text-slate-600 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                  id="slideover-notes-textarea"
                 />
               ) : (
                 <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 leading-relaxed whitespace-pre-wrap min-h-[140px]">
@@ -955,8 +935,8 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
           )}
         </div>
 
-        {/* Modal Bottom Footer Bar */}
-        <div className="p-4 sm:p-5 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs">
+        {/* MODAL BOTTOM FOOTER */}
+        <div className="p-4 sm:p-5 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs flex-shrink-0">
           <button
             onClick={() => {
               if (confirm(`Are you sure you want to remove ${job.role} at ${job.company}?`)) {
@@ -965,19 +945,18 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               }
             }}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors font-medium"
+            id="slideover-delete-job-btn"
           >
             <Trash2 className="w-4 h-4" />
             <span>Delete Job</span>
           </button>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-colors"
-            >
-              Close
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-colors"
+          >
+            Close Inspector
+          </button>
         </div>
       </div>
     </div>

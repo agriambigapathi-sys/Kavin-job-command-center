@@ -75,7 +75,7 @@ export const QuickOutreachModal: React.FC<QuickOutreachModalProps> = ({
             <label className="block text-slate-300 font-medium mb-1">Subject</label>
             <input
               type="text"
-              value={subject}
+              value={subject || ''}
               onChange={(e) => setSubject(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500"
             />
@@ -85,7 +85,7 @@ export const QuickOutreachModal: React.FC<QuickOutreachModalProps> = ({
             <label className="block text-slate-300 font-medium mb-1">Outreach Message</label>
             <textarea
               rows={8}
-              value={message}
+              value={message || ''}
               onChange={(e) => setMessage(e.target.value)}
               className="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500 leading-relaxed font-sans"
             />

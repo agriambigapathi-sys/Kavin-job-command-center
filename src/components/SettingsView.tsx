@@ -129,7 +129,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="block text-slate-300 font-medium mb-1">Full Name</label>
               <input
                 type="text"
-                value={profile.name}
+                value={profile.name || ''}
                 onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500"
               />
@@ -139,7 +139,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="block text-slate-300 font-medium mb-1">Primary Email</label>
               <input
                 type="email"
-                value={profile.email}
+                value={profile.email || ''}
                 onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500"
               />
@@ -149,7 +149,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="block text-slate-300 font-medium mb-1">Phone Number</label>
               <input
                 type="text"
-                value={profile.phone}
+                value={profile.phone || ''}
                 onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500"
               />
@@ -159,7 +159,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="block text-slate-300 font-medium mb-1">Current Base Location</label>
               <input
                 type="text"
-                value={profile.location}
+                value={profile.location || ''}
                 onChange={(e) => setProfile({ ...profile, location: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500"
               />
@@ -169,7 +169,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="block text-slate-300 font-medium mb-1">LinkedIn URL</label>
               <input
                 type="text"
-                value={profile.linkedin}
+                value={profile.linkedin || ''}
                 onChange={(e) => setProfile({ ...profile, linkedin: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500"
               />
@@ -179,7 +179,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="block text-slate-300 font-medium mb-1">GitHub Profile</label>
               <input
                 type="text"
-                value={profile.github}
+                value={profile.github || ''}
                 onChange={(e) => setProfile({ ...profile, github: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500"
               />
@@ -199,7 +199,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="block text-slate-300 font-medium mb-1">Target Compensation Range</label>
               <input
                 type="text"
-                value={profile.targetSalary}
+                value={profile.targetSalary || ''}
                 onChange={(e) => setProfile({ ...profile, targetSalary: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500 font-mono"
               />
@@ -208,7 +208,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div>
               <label className="block text-slate-300 font-medium mb-1">Work Preference</label>
               <select
-                value={profile.workPreference}
+                value={profile.workPreference || 'Remote Preferred'}
                 onChange={(e) => setProfile({ ...profile, workPreference: e.target.value as any })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 focus:ring-1 focus:ring-cyan-500"
               >

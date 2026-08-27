@@ -295,7 +295,7 @@ export const CreateResumeVariantModal: React.FC<CreateResumeVariantModalProps> =
             <input
               type="text"
               id="variant-name-input"
-              value={name}
+              value={name || ''}
               onChange={(e) => {
                 setName(e.target.value);
                 if (validationError) setValidationError(null);
@@ -316,7 +316,7 @@ export const CreateResumeVariantModal: React.FC<CreateResumeVariantModalProps> =
               <input
                 type="text"
                 id="variant-role-input"
-                value={targetRole}
+                value={targetRole || ''}
                 onChange={(e) => {
                   setTargetRole(e.target.value);
                   if (validationError) setValidationError(null);
@@ -335,7 +335,7 @@ export const CreateResumeVariantModal: React.FC<CreateResumeVariantModalProps> =
               <input
                 type="text"
                 id="variant-company-input"
-                value={targetCompany}
+                value={targetCompany || ''}
                 onChange={(e) => setTargetCompany(e.target.value)}
                 placeholder="e.g. PhonePe"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
@@ -357,7 +357,7 @@ export const CreateResumeVariantModal: React.FC<CreateResumeVariantModalProps> =
             </label>
             <select
               id="variant-base-resume-select"
-              value={baseResumeId}
+              value={baseResumeId || ''}
               onChange={(e) => handleBaseResumeChange(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
             >
@@ -378,7 +378,7 @@ export const CreateResumeVariantModal: React.FC<CreateResumeVariantModalProps> =
               </label>
               <select
                 id="variant-job-select"
-                value={selectedJobId}
+                value={selectedJobId || ''}
                 onChange={(e) => handleJobChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
               >
@@ -398,7 +398,7 @@ export const CreateResumeVariantModal: React.FC<CreateResumeVariantModalProps> =
               </label>
               <select
                 id="variant-type-select"
-                value={variantType}
+                value={variantType || 'Targeted'}
                 onChange={(e) => setVariantType(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
               >
@@ -419,7 +419,7 @@ export const CreateResumeVariantModal: React.FC<CreateResumeVariantModalProps> =
             <textarea
               id="variant-notes-textarea"
               rows={3}
-              value={notes}
+              value={notes || ''}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Focus on SQL optimization, business dashboard metrics, and stakeholder reporting..."
               className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all resize-none"
