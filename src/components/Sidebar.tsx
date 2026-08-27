@@ -127,17 +127,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-cyan-400 bg-cyan-500/15 border border-cyan-500/30 px-1.5 py-0.2 rounded">
-                  v2.8 DB
-                </span>
-                <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                  Firestore Live
-                </span>
-              </div>
-              <h1 className="text-sm font-bold text-white tracking-tight leading-tight mt-0.5">
+              <h1 className="text-sm font-bold text-white tracking-tight leading-tight">
                 Job Command Center
               </h1>
+              <p className="text-[11px] text-slate-400">Career Workspace</p>
             </div>
           </div>
           <button

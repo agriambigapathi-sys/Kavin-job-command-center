@@ -31,24 +31,18 @@ export const InterviewsView: React.FC<InterviewsViewProps> = ({ interviews = [] 
   return (
     <div id="interviews-view-container" className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Calendar className="w-5 h-5 text-purple-400" />
-            <span>Interview Command & Preparation Station</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
-              {interviews.length} Scheduled Loops
+            <span>Interviews</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
+              {interviews.length} Scheduled
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Countdown timers, Google Meet/Zoom links, system design prep guides, and AI mock questions.
+            Manage upcoming rounds, meeting links, and preparation notes.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
-            🎯 4 Active Rounds This Week
-          </span>
         </div>
       </div>
 

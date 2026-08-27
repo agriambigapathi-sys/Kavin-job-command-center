@@ -79,54 +79,54 @@ export const Header: React.FC<HeaderProps> = ({
 
   const sectionTitles: Record<NavSection, { title: string; subtitle: string }> = {
     dashboard: {
-      title: 'Command Dashboard',
-      subtitle: 'Overview of pipeline velocity, response rates, and high-priority action items.',
+      title: 'Dashboard',
+      subtitle: 'Overview of pipeline status, upcoming rounds, and action items.',
     },
     jobs: {
-      title: 'Saved & Discovered Jobs',
-      subtitle: 'Personal repository of target positions with match scores and tracking.',
+      title: 'Jobs',
+      subtitle: 'Track and manage target job opportunities.',
     },
     'jd-analyser': {
-      title: 'AI Job Description Analyser',
-      subtitle: 'Evaluate JD match percentage, ATS compliance, skill gaps, and STAR bullet tailoring with Gemini 3.7 Flash.',
+      title: 'Job Description Alignment',
+      subtitle: 'Analyze role compatibility, ATS keyword matching, and skill gap breakdown.',
     },
     resumes: {
-      title: 'Resume Versions & Master Vault',
-      subtitle: 'Manage target resume versions, format previews, and optimize bullet points with AI.',
+      title: 'Resumes',
+      subtitle: 'Manage master resume and role-tailored versions.',
     },
     'cover-letters': {
-      title: 'AI Cover Letter Studio',
-      subtitle: 'Generate tailored, high-converting cover letters matching target role and tone.',
+      title: 'Cover Letters',
+      subtitle: 'Draft and customize tailored cover letters.',
     },
     applications: {
-      title: 'Application Pipeline & Stages',
-      subtitle: 'Active funnel tracker from initial application through final offer negotiation.',
+      title: 'Applications',
+      subtitle: 'Track active application stages and progress.',
     },
     contacts: {
-      title: 'Networking & Recruiter CRM',
-      subtitle: 'Maintain relationships with hiring managers, talent partners, and referrals.',
+      title: 'Contacts',
+      subtitle: 'Manage recruiter and hiring manager relationships.',
     },
     'follow-ups': {
-      title: 'Follow-ups & Outreach Cadence',
-      subtitle: 'Timely reminders for post-interview thank you notes and recruiter check-ins.',
+      title: 'Follow-ups',
+      subtitle: 'Track check-ins, thank-you notes, and status outreach.',
     },
     interviews: {
-      title: 'Interview Command & Prep',
-      subtitle: 'Interview schedule, prep notes, and company-specific mock technical questions.',
+      title: 'Interviews',
+      subtitle: 'Schedule upcoming rounds and access preparation notes.',
     },
     analytics: {
-      title: 'Search Velocity & Funnel Analytics',
-      subtitle: 'Deep-dive conversion metrics, response rates, and salary distributions.',
+      title: 'Analytics',
+      subtitle: 'Track application funnel metrics and response rates.',
     },
     settings: {
-      title: 'Profile & Search Settings',
-      subtitle: 'Configure target compensation, remote preferences, core skills, and credentials.',
+      title: 'Settings',
+      subtitle: 'Configure search preferences, target compensation, and profile data.',
     },
   };
 
   const currentMeta = sectionTitles[current] || {
     title: 'Job Command Center',
-    subtitle: 'Private personal job-search management system.',
+    subtitle: 'Personal career management application.',
   };
 
   const displayName = user?.displayName || userProfile?.name || 'User';
@@ -156,10 +156,6 @@ export const Header: React.FC<HeaderProps> = ({
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                 {currentMeta.title}
               </h2>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                Firestore Secure
-              </span>
             </div>
             <p className="hidden md:block text-xs text-slate-400 font-normal truncate max-w-xl">
               {currentMeta.subtitle}

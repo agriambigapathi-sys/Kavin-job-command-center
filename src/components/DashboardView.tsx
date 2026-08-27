@@ -296,12 +296,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                Command Center Active
-              </span>
               {userProfile.targetSalary && (
-                <span className="text-xs text-slate-400 font-medium hidden sm:inline-block">
+                <span className="text-xs text-slate-400 font-medium">
                   Target Band: <span className="text-slate-200">{userProfile.targetSalary}</span>
                 </span>
               )}
@@ -312,13 +308,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Your job search at a glance —{' '}
               {actionQueue.length > 0 ? (
                 <span>
-                  <strong className="text-amber-300 font-semibold">{actionQueue.length} high-priority action{actionQueue.length > 1 ? 's' : ''}</strong> require attention today.
+                  <strong className="text-amber-300 font-semibold">{actionQueue.length} action item{actionQueue.length > 1 ? 's' : ''}</strong> require attention today.
                 </span>
               ) : (
-                <span>All pipeline actions are up to date. Keep discovering new roles.</span>
+                <span>All pipeline actions are up to date.</span>
               )}
             </p>
           </div>
@@ -474,10 +469,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                Today's Action Queue
+                Today's Actions
               </h2>
               <p className="text-xs text-slate-400">
-                Ranked priority tasks across follow-ups, upcoming rounds, and resume customization
+                Tasks across follow-ups, scheduled rounds, and applications
               </p>
             </div>
           </div>

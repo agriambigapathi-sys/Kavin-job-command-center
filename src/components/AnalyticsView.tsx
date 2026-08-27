@@ -57,17 +57,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   return (
     <div id="analytics-view" className="space-y-6">
       {/* Top Header */}
-      <div className="bg-slate-900/90 p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-cyan-400" />
-            <span>Search Conversion & Performance Analytics</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
-              Top 5% Conversion Efficiency
-            </span>
+            <span>Search Analytics</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real-time funnel conversion metrics, weekly velocity, and market salary comparisons.
+            Funnel conversion metrics, weekly velocity, and application distribution.
           </p>
         </div>
       </div>

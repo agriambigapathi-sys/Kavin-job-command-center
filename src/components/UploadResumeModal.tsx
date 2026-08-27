@@ -639,7 +639,7 @@ export const UploadResumeModal: React.FC<UploadResumeModalProps> = ({
                   className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500 bg-slate-950"
                 />
                 <span className="text-xs font-semibold text-slate-200">
-                  Set as primary Master Resume (Single Source of Truth)
+                  Set as primary Master Resume
                 </span>
               </label>
             </div>

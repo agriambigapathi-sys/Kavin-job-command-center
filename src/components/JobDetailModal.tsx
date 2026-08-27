@@ -811,7 +811,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
                   <div className="text-[11px] text-slate-400 font-medium">Master Resume Used</div>
                   <div className="text-sm font-bold text-slate-200">Senior Full-Stack & AI v2.4</div>
-                  <div className="text-[11px] text-slate-500">ATS Optimized (100% parse rate)</div>
+                  <div className="text-[11px] text-slate-500">Standard ATS Format</div>
                 </div>
               </div>
 

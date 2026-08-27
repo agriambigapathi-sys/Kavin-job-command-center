@@ -51,26 +51,26 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
   return (
     <div id="applications-view-container" className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Layers className="w-5 h-5 text-cyan-400" />
-            <span>Active Application Kanban & Funnel</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-              {applications.length} Total Applications
+            <span>Applications</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
+              {applications.length} Total
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Track interview progression, feedback, compensation offers, and next steps.
+            Track interview progression, status updates, and next steps.
           </p>
         </div>
 
         <button
           onClick={onOpenAddJobModal}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md shadow-cyan-950/40"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-sm"
         >
           <Plus className="w-4 h-4" />
-          <span>Log New Application</span>
+          <span>Add Application</span>
         </button>
       </div>
 

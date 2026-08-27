@@ -609,19 +609,16 @@ export const JobsView: React.FC<JobsViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* 1. TOP HEADER ACTION HUB */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/95 to-cyan-950/30 border border-slate-800/90 shadow-xl">
+      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                <Sparkles className="w-4 h-4" />
-              </span>
               <h2 className="text-base font-bold text-white tracking-tight">
-                Job Command Center & Pipeline
+                Job Pipeline
               </h2>
             </div>
             <p className="text-xs text-slate-400">
-              Manage your entire pipeline across 7 distinct career conversion stages with intelligent match scoring.
+              Track opportunities across stages with match scoring and status management.
             </p>
           </div>
 

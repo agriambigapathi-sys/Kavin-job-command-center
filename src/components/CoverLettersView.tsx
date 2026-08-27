@@ -91,27 +91,27 @@ export const CoverLettersView: React.FC<CoverLettersViewProps> = ({
   return (
     <div id="cover-letters-view" className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <FileEdit className="w-5 h-5 text-cyan-400" />
-            <span>AI Cover Letter Studio</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+            <span>Cover Letters</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
               {coverLetters.length} Saved
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Generate authentic, high-converting cover letters tailored to each company using Gemini 3.7 Flash.
+            Draft and customize cover letters matching target roles and companies.
           </p>
         </div>
 
         <button
           onClick={handleGenerate}
           disabled={isGenerating}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-purple-950/60 transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
         >
-          <Sparkles className="w-4 h-4 text-purple-200" />
-          <span>{isGenerating ? 'Drafting with Gemini...' : 'Generate Custom Letter'}</span>
+          <Sparkles className="w-4 h-4 text-cyan-200" />
+          <span>{isGenerating ? 'Generating...' : 'Generate Letter'}</span>
         </button>
       </div>
 

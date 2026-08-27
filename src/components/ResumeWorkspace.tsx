@@ -577,11 +577,7 @@ export const ResumeWorkspace: React.FC<ResumeWorkspaceProps> = ({
 
             <div className="space-y-1 text-xs text-slate-400">
               <p className="font-semibold text-slate-200">{activeMaster.name}</p>
-              <p className="text-[11px] text-slate-400">Single Source of Truth</p>
-              <div className="text-[11px] text-emerald-400 flex items-center gap-1 pt-0.5">
-                <ShieldCheck className="w-3 h-3" />
-                <span>Evidence Protected</span>
-              </div>
+              <p className="text-[11px] text-slate-400">Primary baseline profile</p>
               <p className="text-[10px] text-slate-500 pt-1">
                 Last Updated: {activeMaster.lastModified || '2026-08-26'}
               </p>
@@ -711,13 +707,10 @@ export const ResumeWorkspace: React.FC<ResumeWorkspaceProps> = ({
                       Tailor for Target Job
                     </h3>
                     <p className="text-[11px] text-slate-400">
-                      AI tailors your resume bullets using verified Master Resume facts.
+                      Align resume bullets with target role requirements using verified resume data.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                  Zero Hallucinations
-                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -1359,7 +1352,7 @@ export const ResumeWorkspace: React.FC<ResumeWorkspaceProps> = ({
             </div>
 
             <p className="text-xs text-slate-400">
-              This source code is formatted with fixed margins and single-column geometry for 100% ATS parser compatibility.
+              This source code is formatted with fixed margins and single-column geometry for standard ATS parser compatibility.
             </p>
 
             <textarea

@@ -42,17 +42,17 @@ export const FollowUpsView: React.FC<FollowUpsViewProps> = ({
   return (
     <div id="follow-ups-view" className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Clock className="w-5 h-5 text-amber-400" />
-            <span>Follow-up & Outreach Command</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">
-              {pending.length} Pending Actions
+            <span>Follow-ups</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
+              {pending.length} Pending
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Automated cadence tracker for 3-day application check-ins, 24h interview thank-you notes, and offer negotiations.
+            Track outreach reminders, interview thank-you notes, and status checks.
           </p>
         </div>
 

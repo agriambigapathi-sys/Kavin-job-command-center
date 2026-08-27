@@ -73,23 +73,23 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
   return (
     <div id="contacts-view-container" className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Users className="w-5 h-5 text-cyan-400" />
-            <span>Networking & Recruiter CRM</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+            <span>Contacts</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
               {contacts.length} Connections
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Manage relationships with recruiters, engineering directors, and referral partners.
+            Manage relationships with recruiters, interviewers, and team members.
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-sm"
         >
           <Plus className="w-4 h-4" />
           <span>Add Contact</span>
