@@ -12,6 +12,11 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Helper function to check if document data belongs to user or is null on get
+    function isDocOwner() {
+      return isAuthenticated() && (resource == null || resource.data.ownerId == request.auth.uid);
+    }
+
     // Helper function to verify incoming ownerId matches the user
     function incomingOwnerMatches() {
       return isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
@@ -24,7 +29,8 @@ service cloud.firestore {
 
     // 1. userProfiles: document ID is ownerId
     match /userProfiles/{userId} {
-      allow read: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.ownerId == userId;
       allow update: if isOwner(userId) && request.resource.data.ownerId == userId;
       allow delete: if isOwner(userId);
@@ -32,7 +38,8 @@ service cloud.firestore {
 
     // 2. jobs
     match /jobs/{jobId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -40,7 +47,8 @@ service cloud.firestore {
 
     // 3. jobDescriptions
     match /jobDescriptions/{jdId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -48,7 +56,8 @@ service cloud.firestore {
 
     // 4. applications
     match /applications/{applicationId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -56,7 +65,8 @@ service cloud.firestore {
 
     // 5. contacts
     match /contacts/{contactId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -64,7 +74,8 @@ service cloud.firestore {
 
     // 6. followUps
     match /followUps/{followUpId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -72,7 +83,8 @@ service cloud.firestore {
 
     // 7. interviews
     match /interviews/{interviewId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -80,7 +92,8 @@ service cloud.firestore {
 
     // 8. resumes
     match /resumes/{resumeId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -88,7 +101,8 @@ service cloud.firestore {
 
     // 9. coverLetters
     match /coverLetters/{coverLetterId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -96,7 +110,8 @@ service cloud.firestore {
 
     // 10. messages
     match /messages/{messageId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -104,7 +119,8 @@ service cloud.firestore {
 
     // 11. activity
     match /activity/{activityId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();
@@ -112,7 +128,8 @@ service cloud.firestore {
 
     // 12. jobAnalyses
     match /jobAnalyses/{analysisId} {
-      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow get: if isDocOwner();
+      allow list: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
       allow create: if incomingOwnerMatches();
       allow update: if existingOwnerMatches() && incomingOwnerMatches();
       allow delete: if existingOwnerMatches();

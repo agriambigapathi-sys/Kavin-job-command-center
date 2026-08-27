@@ -96,36 +96,55 @@ export default function App() {
       return;
     }
 
+    // Demo Mode: Seed rich mock pipeline immediately
+    if (user.uid.startsWith('demo-')) {
+      setJobs(mockJobs);
+      setApplications(mockApplications);
+      setFollowUps(mockFollowUps);
+      setContacts(mockContacts);
+      setResumes(mockResumes);
+      setCoverLetters(mockCoverLetters);
+      setInterviews(mockInterviews);
+      setActivityLogs(mockRecentActivities);
+      setUserProfile(mockUserProfile);
+      setDataLoaded(true);
+      return;
+    }
+
     const unsubJobs = subscribeToCollection<Job>(
       'jobs',
       user.uid,
       (liveJobs) => {
-        setJobs(liveJobs);
-      }
+        setJobs(liveJobs.length > 0 ? liveJobs : mockJobs);
+      },
+      (err) => console.warn('Jobs subscription notice:', err?.message)
     );
 
     const unsubApps = subscribeToCollection<Application>(
       'applications',
       user.uid,
       (liveApps) => {
-        setApplications(liveApps);
-      }
+        setApplications(liveApps.length > 0 ? liveApps : mockApplications);
+      },
+      (err) => console.warn('Applications subscription notice:', err?.message)
     );
 
     const unsubFollowUps = subscribeToCollection<FollowUp>(
       'followUps',
       user.uid,
       (liveFollowUps) => {
-        setFollowUps(liveFollowUps);
-      }
+        setFollowUps(liveFollowUps.length > 0 ? liveFollowUps : mockFollowUps);
+      },
+      (err) => console.warn('FollowUps subscription notice:', err?.message)
     );
 
     const unsubContacts = subscribeToCollection<Contact>(
       'contacts',
       user.uid,
       (liveContacts) => {
-        setContacts(liveContacts);
-      }
+        setContacts(liveContacts.length > 0 ? liveContacts : mockContacts);
+      },
+      (err) => console.warn('Contacts subscription notice:', err?.message)
     );
 
     const unsubResumes = subscribeToCollection<ResumeVersion>(
@@ -141,23 +160,26 @@ export default function App() {
           const baseTemplates = mockResumes.filter((m) => !liveIds.has(m.id));
           setResumes([...baseTemplates, ...liveResumes]);
         }
-      }
+      },
+      (err) => console.warn('Resumes subscription notice:', err?.message)
     );
 
     const unsubCoverLetters = subscribeToCollection<CoverLetter>(
       'coverLetters',
       user.uid,
       (liveCLs) => {
-        setCoverLetters(liveCLs);
-      }
+        setCoverLetters(liveCLs.length > 0 ? liveCLs : mockCoverLetters);
+      },
+      (err) => console.warn('CoverLetters subscription notice:', err?.message)
     );
 
     const unsubInterviews = subscribeToCollection<Interview>(
       'interviews',
       user.uid,
       (liveInterviews) => {
-        setInterviews(liveInterviews);
-      }
+        setInterviews(liveInterviews.length > 0 ? liveInterviews : mockInterviews);
+      },
+      (err) => console.warn('Interviews subscription notice:', err?.message)
     );
 
     const unsubActivity = subscribeToCollection<ActivityLog>(
@@ -165,7 +187,8 @@ export default function App() {
       user.uid,
       (liveActivity) => {
         setActivityLogs(liveActivity.length > 0 ? liveActivity : mockRecentActivities);
-      }
+      },
+      (err) => console.warn('Activity subscription notice:', err?.message)
     );
 
     setDataLoaded(true);

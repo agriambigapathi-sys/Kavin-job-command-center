@@ -19,8 +19,10 @@ interface AuthContextType {
   userProfile: FirestoreUserProfile | null;
   loading: boolean;
   error: string | null;
+  isDemoMode: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  enterDemoMode: () => void;
   clearError: () => void;
   updateUserProfile: (data: Partial<FirestoreUserProfile>) => Promise<void>;
 }
@@ -32,6 +34,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<FirestoreUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(() => {
+    return localStorage.getItem('kavin_job_hub_demo_mode') === 'true';
+  });
 
   const syncUserProfile = async (firebaseUser: User) => {
     try {
@@ -92,8 +97,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       if (currentUser) {
+        setIsDemoMode(false);
+        localStorage.removeItem('kavin_job_hub_demo_mode');
         setUser(currentUser);
         await syncUserProfile(currentUser);
+      } else if (localStorage.getItem('kavin_job_hub_demo_mode') === 'true') {
+        const mockUser = {
+          uid: 'demo-user-candidate',
+          displayName: 'Kavin A. (Preview Mode)',
+          email: 'kavin.demo@commandcenter.local',
+          photoURL: '',
+          isAnonymous: true,
+        } as unknown as User;
+        setUser(mockUser);
+        setUserProfile({
+          ownerId: 'demo-user-candidate',
+          name: 'Kavin A. (Candidate)',
+          email: 'ambigapathikavin2@gmail.com',
+          photoURL: '',
+          targetRoles: ['Senior Full-Stack Engineer', 'AI Platform Engineer'],
+          targetLocations: ['San Francisco, CA', 'Remote US'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
       } else {
         setUser(null);
         setUserProfile(null);
@@ -108,19 +134,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
+  const enterDemoMode = () => {
+    setIsDemoMode(true);
+    localStorage.setItem('kavin_job_hub_demo_mode', 'true');
+    const mockUser = {
+      uid: 'demo-user-candidate',
+      displayName: 'Kavin A. (Preview Mode)',
+      email: 'kavin.demo@commandcenter.local',
+      photoURL: '',
+      isAnonymous: true,
+    } as unknown as User;
+    setUser(mockUser);
+    setUserProfile({
+      ownerId: 'demo-user-candidate',
+      name: 'Kavin A. (Candidate)',
+      email: 'ambigapathikavin2@gmail.com',
+      photoURL: '',
+      targetRoles: ['Senior Full-Stack Engineer', 'AI Platform Engineer'],
+      targetLocations: ['San Francisco, CA', 'Remote US'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    setError(null);
+  };
+
   const signInWithGoogle = async () => {
     try {
       setLoading(true);
       setError(null);
       const result = await signInWithPopup(auth, googleProvider);
       if (result.user) {
+        setIsDemoMode(false);
+        localStorage.removeItem('kavin_job_hub_demo_mode');
         setUser(result.user);
         await syncUserProfile(result.user);
       }
     } catch (err: any) {
-      console.error('Sign in error:', err);
-      setError(err.message || 'Failed to sign in with Google');
-      throw err;
+      const isUnauthDomain =
+        err?.code === 'auth/unauthorized-domain' ||
+        err?.message?.includes('unauthorized-domain');
+      const isPopupClosed =
+        err?.code === 'auth/popup-closed-by-user' ||
+        err?.code === 'auth/cancelled-popup-request';
+
+      if (isUnauthDomain) {
+        console.warn('Firebase Auth: domain is not yet allowlisted in Firebase Console authorized domains list.');
+        setError('Firebase: Error (auth/unauthorized-domain).');
+      } else if (!isPopupClosed) {
+        console.warn('Firebase sign-in notice:', err?.message || err);
+        setError(err?.message || 'Failed to sign in with Google');
+      }
     } finally {
       setLoading(false);
     }
@@ -129,6 +192,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       setLoading(true);
+      setIsDemoMode(false);
+      localStorage.removeItem('kavin_job_hub_demo_mode');
       await firebaseSignOut(auth);
       setUser(null);
       setUserProfile(null);
@@ -142,6 +207,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserProfile = async (data: Partial<FirestoreUserProfile>) => {
     if (!user) return;
+    if (isDemoMode) {
+      setUserProfile((prev) => (prev ? { ...prev, ...data } : null));
+      return;
+    }
     try {
       const userRef = doc(db, 'userProfiles', user.uid);
       const updated = {
@@ -165,8 +234,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userProfile,
         loading,
         error,
+        isDemoMode,
         signInWithGoogle,
         signOut,
+        enterDemoMode,
         clearError,
         updateUserProfile,
       }}
